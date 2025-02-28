@@ -21,10 +21,10 @@ def getDataFrame(table, columns):
 tables = ["country_wise", "day_wise", "usa_county_wise", "worldometer_data"]
 
 for table in tables:
-    print(50 * "-")
+    print(100 * "-")
     print(f"Data from {table}")
     df = getDataFrame(table, "*")
-    print(50 * "-")
+    print(100 * "-")
     print(df)
 
 
