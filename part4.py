@@ -10,7 +10,7 @@ df = pd.read_csv("complete.csv")
 before_count = df.shape[0]
 df_cleaned = df.drop_duplicates(keep='first')
 after_count = df_cleaned.shape[0]
-df_cleaned.to_csv("cleaned_file.csv", index=False)
+df_cleaned.to_csv("cleaned_complete.csv", index=False)
 
 # Look for missing values
 missing_values = df.isnull().sum()
