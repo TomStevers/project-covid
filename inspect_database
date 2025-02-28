@@ -1,0 +1,30 @@
+import pandas as pd
+import sqlite3 
+import numpy as np
+
+def getDataFrame(table, columns):
+    connection = sqlite3.connect('covid_database.db')
+    cursor = connection.cursor()
+    
+    # Construct the correct SQL query
+    query = f"SELECT * FROM {table}"  # Use table name directly
+
+    cursor.execute(query)  # Execute query
+    rows = cursor.fetchall()  # Fetch data
+
+    # Create DataFrame with correct column names
+    df = pd.DataFrame(rows, columns=[desc[0] for desc in cursor.description])
+
+    return df
+
+
+tables = ["country_wise", "day_wise", "usa_county_wise", "worldometer_data"]
+
+for table in tables:
+    print(50 * "-")
+    print(f"Data from {table}")
+    df = getDataFrame(table, "*")
+    print(50 * "-")
+    print(df)
+
+
