@@ -178,6 +178,75 @@ fig = px.scatter_geo(df_map,
 # Show the map
 fig.show()
 
+def estimate_parameters(country):
+    query = f"""
+        SELECT *
+        FROM day_wise
+    """
+    df = pd.read_sql(query, connection)
+    df["Date"] = pd.to_datetime(df["Date"])
+    
+    # Compute µ (death rate) as µ̂(t) = ∆D(t) / I(t)
+    df["mu"] = df["New.deaths"] / df["Active"]
+    
+    # Assume γ (recovery rate) is 1/4.5 days
+    df["gamma"] = 1 / 4.5
+    
+    # Compute β and α using given formulas
+    df["beta"] = (df["New.cases"] + df["gamma"] * df["Active"] + df["mu"] * df["Active"]) / df["Active"]
+    df["alpha"] = df["New.recovered"] / df["Recovered"]
+    
+    # Compute R0 as R0 = β / γ
+    df["R0"] = df["beta"] / df["gamma"]
+    
+    return df[["Date", "alpha", "beta", "gamma", "mu", "R0"]]
 
+# Function to plot R0 trajectory over time
+def plot_R0_trajectory(country):
+    df = estimate_parameters(country)
+    plt.figure(figsize=(10, 5))
+    plt.plot(df["Date"], df["R0"], label=f"$R_0$ trajectory for {country}", color='blue')
+    plt.xlabel("Date")
+    plt.ylabel("$R_0$")
+    plt.title(f"$R_0$ Over Time for {country}")
+    plt.legend()
+    plt.xticks(rotation=45)
+    plt.show()
 
+# Compare death rates across continents
+def compare_death_rates():
+    query = """
+        SELECT Continent, SUM(TotalDeaths) AS Deaths, SUM(Population) AS Population
+        FROM worldometer_data
+        WHERE Continent IS NOT NULL
+        GROUP BY Continent
+    """
+    df = pd.read_sql(query, connection)
+    df["DeathRate"] = df["Deaths"] / df["Population"]
+    
+    plt.figure(figsize=(6, 5))
+    plt.bar(df["Continent"], df["DeathRate"], color='red')
+    plt.xlabel("Continent")
+    plt.ylabel("Death Rate")
+    plt.title("Death Rates Across Continents")
+    plt.xticks(rotation=45)
+    plt.show()
+
+chosen_country = "United States"
+plot_R0_trajectory(chosen_country)
+compare_death_rates()
+
+# Generate a color-coded map of the world
+world_map_query = """
+    SELECT "Country.Region", ActiveCases, Population
+    FROM worldometer_data
+"""
+df_world_map = pd.read_sql(world_map_query, connection)
+df_world_map["Cases_Per_Person"] = df_world_map["ActiveCases"] / df_world_map["Population"]
+
+fig = px.choropleth(df_world_map, locations="Country.Region", locationmode="country names", 
+                    color="Cases_Per_Person", scope="world",
+                    title="Worldwide Active Cases",
+                    color_continuous_scale="Turbo")
+fig.show()
 
