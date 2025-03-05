@@ -2,6 +2,7 @@ import sqlite3
 import pandas as pd
 import matplotlib.pyplot as plt
 
+# Function that puts out a dataframe for the given table and columns
 def getDataFrame(table, columns):
     connection = sqlite3.connect('covid_database.db')
     cursor = connection.cursor()
@@ -18,31 +19,44 @@ def getDataFrame(table, columns):
     connection.close()  # Close connection to avoid memory leaks
     return df
 
-def get_population(country):
+# Function for obtaining the population of the USA
+def get_population_usa():
     connection = sqlite3.connect('covid_database.db')
     cursor = connection.cursor()
 
-    query = """SELECT Population FROM worldometer_data WHERE "Country.Region" = ? """
+    query = """SELECT Population FROM worldometer_data WHERE "Country.Region" = "USA" """
 
-    cursor.execute(query, (country,))
+    cursor.execute(query)
     rows = cursor.fetchall()
     df = pd.DataFrame(rows, columns = [x[0] for x in cursor.description])
     population = df['Population'][0]
 
     return population
 
-def estimates_alpha_beta(country):
-    df = getDataFrame("country_wise", ["Country.Region", "Active", "Deaths", "Recovered"])
+# Function for estimating parameters
+def estimate_parameters_usa():
+    # Getting the correct data from the USA
+    df = getDataFrame("country_wise", ["Country.Region", "Active", "Deaths", "Recovered", "New.cases", "New.deaths", "New.recovered"])
     df_country = df.loc[df['Country.Region'] == 'US']
-    N = get_population(country)
 
-    print(df_country)
+    # Defining variables
+    N = get_population_usa()
+    I = df_country["Active"]
+    D = df_country["Deaths"]
+    R = df_country["Recovered"]
+    S = N - I - D - R
+    delta_I = df_country["New.cases"]
+    delta_D = df_country["New.deaths"]
+    delta_R = df_country["New.recovered"]
+
+    # Estimating parameters
+    gamma = 1/4.5
+    mu = delta_D/I
+    alpha = (gamma*I - delta_R)/R
+    beta = (N*(delta_I + (mu + gamma)*I))/(S*I)
+
+    return [alpha, beta, gamma, mu]
+    
 
 
-def main():
-    df = getDataFrame("day_wise", ["Active", "Deaths", "Recovered"])
-
-    return df
-
-estimates_alpha_beta('USA')
 
