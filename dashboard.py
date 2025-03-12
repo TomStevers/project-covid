@@ -17,5 +17,3 @@ st.pyplot(part3.compare_death_rates())
 plt.show
     
 
-
-    # Hallo test
