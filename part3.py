@@ -250,3 +250,4 @@ fig = px.choropleth(df_world_map, locations="Country.Region", locationmode="coun
                     color_continuous_scale="Turbo")
 fig.show()
 
+# hallo hallo
