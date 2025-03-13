@@ -236,6 +236,10 @@ chosen_country = "United States"
 plot_R0_trajectory(chosen_country)
 compare_death_rates()
 
+
+available_countries = df["Country.region"].unique()
+
+
 # Generate a color-coded map of the world
 world_map_query = """
     SELECT "Country.Region", ActiveCases, Population
