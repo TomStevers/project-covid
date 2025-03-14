@@ -179,39 +179,64 @@ fig = px.scatter_geo(df_map,
 fig.show()
 
 def estimate_parameters(country):
-    query = f"""
-        SELECT *
-        FROM day_wise
-    """
-    df = pd.read_sql(query, connection)
-    df["Date"] = pd.to_datetime(df["Date"])
+    df = pd.read_csv("cleaned_complete.csv")
     
-    # Compute µ (death rate) as µ̂(t) = ∆D(t) / I(t)
-    df["mu"] = df["New.deaths"] / df["Active"]
+    # Filter data for the selected country
+    country_df = df[df["Country.Region"] == country].copy()
+    if country_df.empty:
+        return pd.DataFrame()  # Return empty DataFrame if no data for the country
     
-    # Assume γ (recovery rate) is 1/4.5 days
-    df["gamma"] = 1 / 4.5
+    # Convert Date column to datetime
+    country_df["Date"] = pd.to_datetime(country_df["Date"])
+    country_df.sort_values("Date", inplace=True)
     
-    # Compute β and α using given formulas
-    df["beta"] = (df["New.cases"] + df["gamma"] * df["Active"] + df["mu"] * df["Active"]) / df["Active"]
-    df["alpha"] = df["New.recovered"] / df["Recovered"]
+    # Initial susceptible population assumption
+    country_df["S"] = country_df["Confirmed"].iloc[0] + 100000  # Example assumption
+    N = country_df["S"] + country_df["Active"] + country_df["Recovered"] + country_df["Deaths"]
     
-    # Compute R0 as R0 = β / γ
-    df["R0"] = df["beta"] / df["gamma"]
+    # Compute daily changes
+    country_df["DeltaD"] = country_df["Deaths"].diff().fillna(0)
+    country_df["DeltaR"] = country_df["Recovered"].diff().fillna(0)
+    country_df["DeltaI"] = country_df["Active"].diff().fillna(0)
     
-    return df[["Date", "alpha", "beta", "gamma", "mu", "R0"]]
+    # Estimate mortality rate (μ)
+    country_df["mu"] = (country_df["DeltaD"] / country_df["Active"]).fillna(0)
+    
+    # Assume γ (recovery rate) as 1/4.5 days
+    country_df["gamma"] = 1 / 4.5
+    
+    # Estimate β (transmission rate)
+    country_df["beta"] = ((country_df["DeltaI"] + country_df["gamma"] * country_df["Active"] + country_df["mu"] * country_df["Active"]) / ((country_df["S"] * country_df["Active"]) / N)).fillna(0)
+    
+    # Estimate α (loss of immunity rate) as α = DeltaR / Recovered
+    country_df["alpha"] = (country_df["DeltaR"] / country_df["Recovered"]).fillna(0)
+    
+    # Compute basic reproduction number R0 = β / γ
+    country_df["R0"] = (country_df["beta"] / country_df["gamma"]).fillna(0)
+    
+    return country_df[["Date", "alpha", "beta", "gamma", "mu", "R0"]]
 
-# Function to plot R0 trajectory over time
-def plot_R0_trajectory(country):
-    df = estimate_parameters(country)
-    plt.figure(figsize=(10, 5))
-    plt.plot(df["Date"], df["R0"], label=f"$R_0$ trajectory for {country}", color='blue')
-    plt.xlabel("Date")
-    plt.ylabel("$R_0$")
-    plt.title(f"$R_0$ Over Time for {country}")
-    plt.legend()
+
+def creating_available_countries():
+    """Fetch unique country names from the CSV file."""
+    return df["Country.Region"].unique().tolist()
+
+
+
+def plot_R0_trajectory(df, country):
+  # Generate an R0 trajectory plot for the selected country.
+    if df.empty:
+        return None  # No data available, avoid plotting
+    
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.plot(df["Date"], df["R0"], linestyle="-", color="blue", label=f"$R_0$ for {country}")
+    ax.set_xlabel("Date")
+    ax.set_ylabel("$R_0$")
+    ax.set_title(f"$R_0$ Over Time for {country}")
+    ax.legend()
     plt.xticks(rotation=45)
-    plt.show()
+
+    return fig  # Return figure to be displayed in Streamlit
 
 # Compare death rates across continents
 def compare_death_rates():
@@ -224,20 +249,15 @@ def compare_death_rates():
     df = pd.read_sql(query, connection)
     df["DeathRate"] = df["Deaths"] / df["Population"]
     
-    plt.figure(figsize=(6, 5))
+    plt.figure(figsize=(3, 2))
     plt.bar(df["Continent"], df["DeathRate"], color='red')
     plt.xlabel("Continent")
     plt.ylabel("Death Rate")
     plt.title("Death Rates Across Continents")
     plt.xticks(rotation=45)
     plt.show()
+    return fig
 
-chosen_country = "United States"
-plot_R0_trajectory(chosen_country)
-compare_death_rates()
-
-
-available_countries = df["Country.region"].unique()
 
 
 # Generate a color-coded map of the world
