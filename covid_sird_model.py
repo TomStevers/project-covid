@@ -3,21 +3,23 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import plotly.express as px
 
-# Connect to the database
+# Connect to the database/CSV
 db_path = "covid_database.db"
 connection = sqlite3.connect(db_path)
 df = pd.read_csv("cleaned_complete.csv")
 
 def creating_available_countries():
+    # Create a lit of all unique countries
     return sorted(df["Country.Region"].unique())
 
 def get_population_from_db(country):
+    # Get population from db
     connection = sqlite3.connect(db_path)
     cursor = connection.cursor()
     
     country_mapping = {
         "US": "USA",
-        "Holy See": "Vatican City"
+        "Holy See": "Vatican City"  
     }
     
     mapped_country = country_mapping.get(country, country)
@@ -35,7 +37,7 @@ def get_population_from_db(country):
 
 
 def estimate_parameters(country):
- 
+    # Estimate parameters for the SIRD Model
     actual_population = get_population_from_db(country)
     if actual_population is None:
         return pd.DataFrame()  # Return empty DataFrame if population data is not found
@@ -43,34 +45,34 @@ def estimate_parameters(country):
     # Filter data for the selected country
     country_df = df[df["Country.Region"] == country].copy()
     if country_df.empty:
-        return pd.DataFrame()  # Return empty DataFrame if no data for the country
+        return pd.DataFrame()
     
     # Convert Date column to datetime
     country_df["Date"] = pd.to_datetime(country_df["Date"])
     country_df.sort_values("Date", inplace=True)
     
-    # Initial susceptible population assumption
-    country_df["S"] = country_df["Confirmed"].iloc[0] + 100000  # Example assumption
-    N = country_df["S"] + country_df["Active"] + country_df["Recovered"] + country_df["Deaths"]
+    # Use actual population from a country
+    N = actual_population
+    country_df["S"] = N - (country_df["Active"] + country_df["Recovered"] + country_df["Deaths"])
     
     # Compute daily changes
     country_df["DeltaD"] = country_df["Deaths"].diff().fillna(0)
     country_df["DeltaR"] = country_df["Recovered"].diff().fillna(0)
     country_df["DeltaI"] = country_df["Active"].diff().fillna(0)
     
-    # Estimate mortality rate (μ)
+    # Estimate mortality rate (mu)
     country_df["mu"] = (country_df["DeltaD"] / country_df["Active"]).fillna(0)
     
-    # Assume γ (recovery rate) as 1/4.5 days
+    # Assume gamma (recovery rate) as 1/4.5 days
     country_df["gamma"] = 1 / 4.5
     
-    # Estimate β (transmission rate)
+    # Estimate beta (transmission rate)
     country_df["beta"] = ((country_df["DeltaI"] + country_df["gamma"] * country_df["Active"] + country_df["mu"] * country_df["Active"]) / ((country_df["S"] * country_df["Active"]) / N)).fillna(0)
     
-    # Estimate α (loss of immunity rate) as α = DeltaR / Recovered
+    # Estimate alpha (loss of immunity rate) as alpha = DeltaR / Recovered
     country_df["alpha"] = (country_df["DeltaR"] / country_df["Recovered"]).fillna(0)
     
-    # Compute basic reproduction number R0 = β / γ
+    # Compute R0
     country_df["R0"] = (country_df["beta"] / country_df["gamma"]).clip(lower=0).fillna(0)
     
     return country_df[["Date", "alpha", "beta", "gamma", "mu", "R0"]]
@@ -78,7 +80,7 @@ def estimate_parameters(country):
 def plot_R0_trajectory(df, country):
   # Generate an R0 trajectory plot for the selected country.
     if df.empty:
-        return None  # No data available, avoid plotting
+        return None 
     
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.plot(df["Date"], df["R0"], linestyle="-", color="blue", label=f"$R_0$ for {country}")
@@ -93,7 +95,7 @@ def plot_R0_trajectory(df, country):
 def plot_death_rate(df, country):
     # Generate a death rate trajectory plot for the selected country.
     if df.empty:
-        return None  # No data available, avoid plotting
+        return None  
     
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.plot(df["Date"], df["mu"], linestyle="-", color="red", label=f"Death Rate for {country}")
