@@ -7,54 +7,6 @@ import plotly.express as px
 db_path = "covid_database.db"
 connection = sqlite3.connect(db_path)
 
-# Load country-wise and worldometer data
-query = """
-    SELECT c."Country.Region", c.Confirmed, c.Deaths, c.Recovered, c.Active, w.Population
-    FROM country_wise c
-    JOIN worldometer_data w ON c."Country.Region" = w."Country.Region"
-"""
-df = pd.read_sql(query, connection)
-
-# Normalize by population
-df["Active_Rate"] = df["Active"] / df["Population"]
-df["Death_Rate"] = df["Deaths"] / df["Population"]
-df["Recovery_Rate"] = df["Recovered"] / df["Population"]
-
-# Plot cases over time for a given country
-country = "United States"
-daywise_query = f"""
-    SELECT Date, Active, Deaths, Recovered FROM day_wise
-"""
-df_daywise = pd.read_sql(daywise_query, connection)
-df_daywise["Date"] = pd.to_datetime(df_daywise["Date"])
-
-plt.figure(figsize=(12, 6))
-plt.plot(df_daywise["Date"], df_daywise["Active"], label="Active Cases")
-plt.plot(df_daywise["Date"], df_daywise["Deaths"], label="Deaths")
-plt.plot(df_daywise["Date"], df_daywise["Recovered"], label="Recovered")
-plt.legend()
-plt.xlabel("Date")
-plt.ylabel("Count")
-plt.title(f"COVID-19 Trends Over Time")
-plt.xticks(rotation=45)
-plt.show()
-
-
-# Generate a color-coded map of Europe
-european_map_query = """
-    SELECT "Country.Region", ActiveCases, Population
-    FROM worldometer_data
-    WHERE continent = 'Europe'
-"""
-df_european_map = pd.read_sql(european_map_query, connection)
-df_european_map["Cases_Per_Person"] = df_european_map["ActiveCases"] / df_european_map["Population"]
-
-fig = px.choropleth(df_european_map, locations="Country.Region", locationmode="country names", 
-                    color="Cases_Per_Person", scope="europe",
-                    title="European Countries with Active Cases",
-                    color_continuous_scale="Turbo")
-fig.show()
-
 
 # Query to get top 5 counties with the most confirmed cases
 query_confirmed = """
@@ -175,8 +127,6 @@ fig = px.scatter_geo(df_map,
                      title="Top 5 U.S. Counties with Most Confirmed Cases (Red), Most Deaths (Blue), and Both (Purple)",
                      scope="usa")
 
-# Show the map
-fig.show()
 
 
 
@@ -186,40 +136,13 @@ fig.show()
 
 
 
-# Compare death rates across continents
-def compare_death_rates():
-    query = """
-        SELECT Continent, SUM(TotalDeaths) AS Deaths, SUM(Population) AS Population
-        FROM worldometer_data
-        WHERE Continent IS NOT NULL
-        GROUP BY Continent
-    """
-    df = pd.read_sql(query, connection)
-    df["DeathRate"] = df["Deaths"] / df["Population"]
-    
-    plt.figure(figsize=(3, 2))
-    plt.bar(df["Continent"], df["DeathRate"], color='red')
-    plt.xlabel("Continent")
-    plt.ylabel("Death Rate")
-    plt.title("Death Rates Across Continents")
-    plt.xticks(rotation=45)
-    plt.show()
-    return fig
 
 
 
-# Generate a color-coded map of the world
-world_map_query = """
-    SELECT "Country.Region", ActiveCases, Population
-    FROM worldometer_data
-"""
-df_world_map = pd.read_sql(world_map_query, connection)
-df_world_map["Cases_Per_Person"] = df_world_map["ActiveCases"] / df_world_map["Population"]
 
-fig = px.choropleth(df_world_map, locations="Country.Region", locationmode="country names", 
-                    color="Cases_Per_Person", scope="world",
-                    title="Worldwide Active Cases",
-                    color_continuous_scale="Turbo")
-fig.show()
+
+
+
+
 
 
