@@ -7,125 +7,96 @@ import plotly.express as px
 db_path = "covid_database.db"
 connection = sqlite3.connect(db_path)
 
+def get_top_x_data(connection, column_name):
+    """
+    Fetches the top 5 counties in the U.S. based on the given column (Confirmed or Deaths).
+    Also retrieves latitude and longitude in the same query to avoid redundant calls.
+    """
+    query = f"""
+        SELECT 
+            Province_State, 
+            Admin2, 
+            Lat, 
+            Long_, 
+            SUM({column_name}) AS Total
+        FROM usa_county_wise
+        WHERE Country_Region = 'US' 
+        GROUP BY Province_State, Admin2
+        ORDER BY Total DESC
+        LIMIT 10
+    """
+    df = pd.read_sql(query, connection)
+    df['Category'] = 'Confirmed' if column_name == 'Confirmed' else 'Deaths'
+    return df
 
-# Query to get top 5 counties with the most confirmed cases
-query_confirmed = """
-    SELECT 
-        Province_State, 
-        Admin2, 
-        SUM(Confirmed) AS Total_Confirmed
-    FROM usa_county_wise
-    WHERE Country_Region = 'US' 
-    GROUP BY Province_State, Admin2
-    ORDER BY Total_Confirmed DESC
-    LIMIT 5
-"""
-top_5_confirmed = pd.read_sql(query_confirmed, connection)
+def create_map(dataframe, category):
+    """
+    Creates a scatter geo map for the given data.
+    """
+    color_map = {'Confirmed': 'red', 'Deaths': 'blue'}
+    fig = px.scatter_geo(dataframe,
+                         lat='Lat', 
+                         lon='Long_',
+                         color='Category',
+                         color_discrete_map=color_map,
+                         hover_name='Admin2',
+                         hover_data=['Province_State', 'Total'],
+                         title=f"Top 10 U.S. Counties with Most {category} Cases",
+                         scope="usa")
+    return fig
 
-# Query to get top 5 counties with the most deaths
-query_deaths = """
-    SELECT 
-        Province_State, 
-        Admin2, 
-        SUM(Deaths) AS Total_Deaths
-    FROM usa_county_wise
-    WHERE Country_Region = 'US' 
-    GROUP BY Province_State, Admin2
-    ORDER BY Total_Deaths DESC
-    LIMIT 5
-"""
-top_5_deaths = pd.read_sql(query_deaths, connection)
+def plot_confirmed_cases_map(connection):
+    top_x_confirmed = get_top_x_data(connection, 'Confirmed')
+    return create_map(top_x_confirmed, 'Confirmed')
 
-# Combine both lists into one DataFrame (for the purpose of coloring)
-# Mark confirmed cases counties as 'Confirmed' and death counties as 'Deaths'
-top_5_confirmed['Category'] = 'Confirmed'
-top_5_deaths['Category'] = 'Deaths'
+def plot_deaths_map(connection):
+    top_x_deaths = get_top_x_data(connection, 'Deaths')
+    return create_map(top_x_deaths, 'Deaths')
 
-# Merge both DataFrames
-top_5_combined = pd.concat([top_5_confirmed[['Province_State', 'Admin2', 'Total_Confirmed', 'Category']],
-                            top_5_deaths[['Province_State', 'Admin2', 'Total_Deaths', 'Category']]])
+# Mapping of full state names to abbreviations
+STATE_ABBREVIATIONS = {
+    "Alabama": "AL", "Alaska": "AK", "Arizona": "AZ", "Arkansas": "AR", "California": "CA",
+    "Colorado": "CO", "Connecticut": "CT", "Delaware": "DE", "Florida": "FL", "Georgia": "GA",
+    "Hawaii": "HI", "Idaho": "ID", "Illinois": "IL", "Indiana": "IN", "Iowa": "IA", "Kansas": "KS",
+    "Kentucky": "KY", "Louisiana": "LA", "Maine": "ME", "Maryland": "MD", "Massachusetts": "MA",
+    "Michigan": "MI", "Minnesota": "MN", "Mississippi": "MS", "Missouri": "MO", "Montana": "MT",
+    "Nebraska": "NE", "Nevada": "NV", "New Hampshire": "NH", "New Jersey": "NJ", "New Mexico": "NM",
+    "New York": "NY", "North Carolina": "NC", "North Dakota": "ND", "Ohio": "OH", "Oklahoma": "OK",
+    "Oregon": "OR", "Pennsylvania": "PA", "Rhode Island": "RI", "South Carolina": "SC",
+    "South Dakota": "SD", "Tennessee": "TN", "Texas": "TX", "Utah": "UT", "Vermont": "VT",
+    "Virginia": "VA", "Washington": "WA", "West Virginia": "WV", "Wisconsin": "WI", "Wyoming": "WY"
+}
 
-# If there are counties that appear in both lists, combine their information
-top_5_combined = top_5_combined.groupby(['Province_State', 'Admin2', 'Category']).agg({
-    'Total_Confirmed': 'sum',
-    'Total_Deaths': 'sum'
-}).reset_index()
+def plot_usa_choropleth(connection):
+    """
+    Creates a choropleth map of confirmed COVID-19 cases by state.
+    """
+    query = """
+        SELECT 
+            Province_State AS State, 
+            SUM(Confirmed) AS "Total Confirmed"
+        FROM usa_county_wise
+        WHERE Country_Region = 'US' 
+        AND Province_State NOT IN ('American Samoa', 'Guam', 'Northern Mariana Islands', 'Puerto Rico', 'Virgin Islands')
+        GROUP BY Province_State
+    """
+    df = pd.read_sql(query, connection)
 
-# Create a new color column based on the category
-top_5_combined['Color'] = top_5_combined['Category'].map({'Confirmed': 'red', 'Deaths': 'blue'})
+    # Convert full state names to abbreviations
+    df["State"] = df["State"].map(STATE_ABBREVIATIONS)
 
-# Query to fetch lat/long for counties (if available in the database)
-query_confirmed = """
-    SELECT 
-        Province_State, 
-        Admin2, 
-        SUM(Confirmed) AS Total_Confirmed
-    FROM usa_county_wise
-    WHERE Country_Region = 'US' 
-    GROUP BY Province_State, Admin2
-    ORDER BY Total_Confirmed DESC
-    LIMIT 5
-"""
-top_5_confirmed = pd.read_sql(query_confirmed, connection)
+    fig = px.choropleth(df, 
+                        locations="State", 
+                        locationmode="USA-states",
+                        color="Total Confirmed",
+                        color_continuous_scale="Turbo",
+                        title="Total Confirmed COVID-19 Cases by State",
+                        scope="usa")
+    return fig
 
-# Query to get top 5 counties with the most deaths
-query_deaths = """
-    SELECT 
-        Province_State, 
-        Admin2, 
-        SUM(Deaths) AS Total_Deaths
-    FROM usa_county_wise
-    WHERE Country_Region = 'US' 
-    GROUP BY Province_State, Admin2
-    ORDER BY Total_Deaths DESC
-    LIMIT 5
-"""
-top_5_deaths = pd.read_sql(query_deaths, connection)
 
-# Create new columns for confirmed and deaths categories
-top_5_confirmed['Category'] = 'Confirmed'
-top_5_deaths['Category'] = 'Deaths'
 
-# Merge both DataFrames
-top_5_combined = pd.concat([top_5_confirmed[['Province_State', 'Admin2', 'Total_Confirmed', 'Category']],
-                            top_5_deaths[['Province_State', 'Admin2', 'Total_Deaths', 'Category']]])
 
-# Identify counties that are in both top 5 confirmed and deaths lists
-both_counties = set(top_5_confirmed['Admin2']).intersection(set(top_5_deaths['Admin2']))
-
-# Update the 'Category' for counties in both lists
-top_5_combined['Category'] = top_5_combined.apply(lambda row: 'Both' if row['Admin2'] in both_counties else row['Category'], axis=1)
-
-# Create a new column for color coding
-top_5_combined['Color'] = top_5_combined['Category'].map({'Confirmed': 'red', 'Deaths': 'blue', 'Both': 'purple'})
-
-# Query to fetch lat/long for counties (if available in the database)
-map_query = """
-    SELECT 
-        Province_State, 
-        Admin2, 
-        Lat, 
-        Long_
-    FROM usa_county_wise
-    WHERE Country_Region = 'US' AND (Admin2 IN ('{}'))
-""".format("', '".join(top_5_combined['Admin2']))  # Get the top counties' lat/long
-
-# Get the corresponding lat/long for the top counties
-df_map = pd.read_sql(map_query, connection)
-
-# Merge the top 5 counties info (Confirmed/Deaths) with lat/long info
-df_map = df_map.merge(top_5_combined, on=['Province_State', 'Admin2'])
-
-# Generate the choropleth map with distinct colors
-fig = px.scatter_geo(df_map,
-                     lat='Lat', 
-                     lon='Long_',
-                     color='Category',
-                     color_discrete_map={'Confirmed': 'red', 'Deaths': 'blue', 'Both': 'purple'},
-                     hover_name='Admin2',
-                     hover_data=['Province_State', 'Total_Confirmed', 'Total_Deaths'],
-                     title="Top 5 U.S. Counties with Most Confirmed Cases (Red), Most Deaths (Blue), and Both (Purple)",
-                     scope="usa")
 
 
 
