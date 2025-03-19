@@ -65,26 +65,29 @@ with tab1:
 
 with tab2:
     st.title("📈 SIRD Model")
-#   st.write("Content for the SIRD Model will be added here.")
-    available_countries = creating_available_countries()
 
+    # Create two columns for side-by-side layout
+    col1, col2 = st.columns([1, 1])  # Adjust the ratio if needed
+
+    # Sidebar selection
+    available_countries = creating_available_countries()
     selected_country = st.sidebar.selectbox("Select a Country", available_countries)
-    r0_data = estimate_parameters(selected_country)    
-    fig = plot_R0_trajectory(r0_data, selected_country)
-    col1, col2 = st.columns([1, 1])
-    
- # Plot and display the R0 trajectory
+
+    # Estimate parameters and fetch data
+    r0_data = estimate_parameters(selected_country)
+
+    # Display R0 Trajectory in the first column
     with col1:
-        # st.subheader(f"R_0 Over Time")
+        st.subheader("R₀ Over Time")
         fig_r0 = plot_R0_trajectory(r0_data, selected_country)
-    if fig_r0:
-        st.pyplot(fig_r0)
-    else:
-        st.error(f"No R₀ data available for {selected_country}.")
- 
- # Plot and display the death rate trajectory
+        if fig_r0:
+            st.pyplot(fig_r0)
+        else:
+            st.error(f"No R₀ data available for {selected_country}.")
+
+    # Display Death Rate Trajectory in the second column
     with col2:
-     # st.subheader(f"Death Rate Over Time")
+        st.subheader("Death Rate Over Time")
         fig_death = plot_death_rate(r0_data, selected_country)
         if fig_death:
             st.pyplot(fig_death)
@@ -93,5 +96,32 @@ with tab2:
 
 with tab3:
     st.title("🇺🇸 USA Stats")
-    st.subheader("🗺️ COVID-19 Cases by State")
+    # st.subheader("🗺️ COVID-19 Cases by State")
     st.plotly_chart(plot_usa_choropleth(connection), use_container_width=True) 
+
+    col1, col2 = st.columns([1, 1])
+                            
+
+    with col1:
+        st.plotly_chart(plot_confirmed_cases_map(connection))
+
+
+    with col2:
+        st.plotly_chart(plot_deaths_map(connection))
+
+    
+    st.divider()
+
+    col3, col4 = st.columns([1, 1])
+
+    with col3:
+        st.subheader("US States with most confirmed cases")
+        top_x_confirmed = get_top_x_data(connection, 'Confirmed')[["Admin2" , "Total"]]
+        top_x_confirmed = top_x_confirmed.rename(columns={"Admin2": "County", "Total": "Confirmed Cases"})
+        st.dataframe(top_x_confirmed, use_container_width=True, hide_index=True)
+
+    with col4:
+        st.subheader("US States with most Deaths")
+        top_x_deaths = get_top_x_data(connection, 'Deaths')[["Admin2", "Total"]]
+        top_x_deaths = top_x_deaths.rename(columns={"Admin2": "County", "Total": "Deaths"})
+        st.dataframe(top_x_deaths, use_container_width=True, hide_index=True)

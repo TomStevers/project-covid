@@ -25,7 +25,7 @@ def get_top_x_data(connection, column_name):
     query = f"""
         SELECT 
             Province_State, 
-            Admin2, 
+            Admin2,
             Lat, 
             Long_, 
             SUM({column_name}) AS Total
@@ -54,6 +54,16 @@ def create_map(dataframe, category):
                          hover_data=['Province_State', 'Total'],
                          title=f"Top 10 U.S. Counties with Most {category} Cases",
                          scope="usa")
+    
+    fig.update_geos(
+        showcoastlines=True,  
+        showland=True,  
+        landcolor='#DEEBF7',  # Changes only the USA land color
+        lakecolor="lightblue",  # Keeps lakes distinct
+        showocean=True,  # Ensures ocean areas are colored
+        oceancolor="lightblue"  # Ocean color
+    )
+
     return fig
 
 def plot_confirmed_cases_map(connection):
@@ -103,7 +113,7 @@ def plot_usa_choropleth(connection):
                         locations="State", 
                         locationmode="USA-states",
                         color="Total Confirmed",
-                        color_continuous_scale="Turbo",
+                        color_continuous_scale="Blues",
                         title="Total Confirmed COVID-19 Cases by State",
                         scope="usa")
     return fig
