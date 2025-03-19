@@ -7,11 +7,21 @@ import plotly.express as px
 db_path = "covid_database.db"
 connection = sqlite3.connect(db_path)
 
+def get_latest_date(connection):
+    """
+    Retrieves the most recent date available in the dataset.
+    """
+    query = "SELECT MAX(Date) FROM usa_county_wise"
+    latest_date = pd.read_sql(query, connection).iloc[0, 0]
+    return latest_date
+
 def get_top_x_data(connection, column_name):
     """
-    Fetches the top 5 counties in the U.S. based on the given column (Confirmed or Deaths).
-    Also retrieves latitude and longitude in the same query to avoid redundant calls.
+    Fetches the top 5 counties in the U.S. based on the given column (Confirmed or Deaths),
+    only for the most recent available date.
     """
+    latest_date = get_latest_date(connection)  # **Retrieve latest available date**
+    
     query = f"""
         SELECT 
             Province_State, 
@@ -21,6 +31,7 @@ def get_top_x_data(connection, column_name):
             SUM({column_name}) AS Total
         FROM usa_county_wise
         WHERE Country_Region = 'US' 
+        AND Date = '{latest_date}'  -- **Filter for the latest date**
         GROUP BY Province_State, Admin2
         ORDER BY Total DESC
         LIMIT 10
@@ -69,14 +80,17 @@ STATE_ABBREVIATIONS = {
 
 def plot_usa_choropleth(connection):
     """
-    Creates a choropleth map of confirmed COVID-19 cases by state.
+    Creates a choropleth map of confirmed COVID-19 cases by state, using the most recent date.
     """
-    query = """
+    latest_date = get_latest_date(connection)  # **Retrieve latest available date**
+    
+    query = f"""
         SELECT 
             Province_State AS State, 
             SUM(Confirmed) AS "Total Confirmed"
         FROM usa_county_wise
         WHERE Country_Region = 'US' 
+        AND Date = '{latest_date}'  -- **Filter for the latest date**
         AND Province_State NOT IN ('American Samoa', 'Guam', 'Northern Mariana Islands', 'Puerto Rico', 'Virgin Islands')
         GROUP BY Province_State
     """
@@ -93,27 +107,3 @@ def plot_usa_choropleth(connection):
                         title="Total Confirmed COVID-19 Cases by State",
                         scope="usa")
     return fig
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

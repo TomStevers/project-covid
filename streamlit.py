@@ -29,7 +29,7 @@ with tab1:
     start_date = start_date.strftime('%Y-%m-%d')
     end_date = end_date.strftime('%Y-%m-%d')
 
-    # Get totals
+    # Get totals (Fix: Create new connection inside each function)
     total_active, total_deaths, total_recovered, total_confirmed = get_totals(start_date, end_date)
     top_cases_df = top_countries_by_cases()
     top_deaths_df = top_countries_by_deathrate()
@@ -69,16 +69,5 @@ with tab2:
 
 with tab3:
     st.title("🇺🇸 USA Stats")
-    # st.plotly_chart(plot_confirmed_cases_map(connection))
-    # st.plotly_chart(plot_deaths_map(connection))
     st.subheader("🗺️ COVID-19 Cases by State")
-    st.plotly_chart(plot_usa_choropleth(connection), use_container_width=True)
-
-  
-
-
-
-
-
-
-
+    st.plotly_chart(plot_usa_choropleth(connection), use_container_width=True) 
