@@ -3,41 +3,45 @@ import pandas as pd
 import plotly.express as px
 import matplotlib.pyplot as plt
 
-# Establish a persistent database connection
 db_path = "covid_database.db"
-connection = sqlite3.connect(db_path)
+
+def get_db_connection():
+    """Create and return a new database connection."""
+    return sqlite3.connect(db_path, check_same_thread=False)
 
 def plot_continent_map(continent):
+    connection = get_db_connection()
+    
     if continent == "All":
         query = """
             SELECT "Country.Region", ActiveCases, Population
             FROM worldometer_data
             WHERE Continent IS NOT NULL
         """
-        df_continent_map = pd.read_sql(query, connection)
     else:
         query = """
             SELECT "Country.Region", ActiveCases, Population
             FROM worldometer_data
             WHERE continent = ?
         """
-        df_continent_map = pd.read_sql(query, connection, params=(continent,))
     
-    df_continent_map["Total Cases"] = df_continent_map["ActiveCases"] 
-    # / df_continent_map["Population"]
+    df_continent_map = pd.read_sql(query, connection, params=(continent,) if continent != "All" else None)
+    connection.close()  # Close connection after fetching data
+    
+    df_continent_map["Total Cases"] = df_continent_map["ActiveCases"]
     
     fig = px.choropleth(
         df_continent_map, 
         locations="Country.Region", 
         locationmode="country names", 
         color="Total Cases", 
-        # title=f"{continent if continent != 'All' else 'All Continents'} Countries with Active Cases", 
         color_continuous_scale="Turbo"
     )
 
     return fig
 
 def compare_death_rates():
+    connection = get_db_connection()
     query = """
         SELECT Continent, SUM(TotalDeaths) AS Deaths, SUM(Population) AS Population
         FROM worldometer_data
@@ -45,6 +49,7 @@ def compare_death_rates():
         GROUP BY Continent
     """
     df = pd.read_sql(query, connection)
+    connection.close()
     
     df["DeathRate"] = df["Deaths"] / df["Population"]
     
@@ -53,13 +58,14 @@ def compare_death_rates():
         names="Continent", 
         values="DeathRate", 
         title="Death Rates Across Continents", 
-        hole=0.4,  # Creates a donut chart
+        hole=0.4,
         color_discrete_sequence=px.colors.sequential.Reds
     )
     
     return fig
 
 def top_countries_by_cases():
+    connection = get_db_connection()
     query = """
         SELECT "Country.Region" AS Countries, TotalCases AS "Total Cases"
         FROM worldometer_data
@@ -68,10 +74,12 @@ def top_countries_by_cases():
         LIMIT 5
     """
     df_cases = pd.read_sql(query, connection)
+    connection.close()
     
     return df_cases
 
 def top_countries_by_deathrate():
+    connection = get_db_connection()
     query = """
         SELECT "Country.Region" AS Countries, (TotalDeaths * 1.0 / Population) AS "Death Rate"
         FROM worldometer_data
@@ -80,18 +88,22 @@ def top_countries_by_deathrate():
         LIMIT 5
     """
     df_deaths = pd.read_sql(query, connection)
+    connection.close()
 
     return df_deaths
 
 def get_totals(start_date, end_date):
-
+    connection = get_db_connection()
+    
     query = f"""
         SELECT Date, Active, Deaths, Recovered, Confirmed
         FROM day_wise 
         WHERE Date BETWEEN '{start_date}' AND '{end_date}' 
         ORDER BY Date DESC LIMIT 1;
     """
+    
     latest_row = pd.read_sql(query, connection)
+    connection.close()
     
     if not latest_row.empty:
         total_active = latest_row['Active'].values[0]
@@ -104,14 +116,17 @@ def get_totals(start_date, end_date):
     return total_active, total_deaths, total_recovered, total_confirmed
 
 def plot_totals(start_date, end_date):
-
+    connection = get_db_connection()
+    
     query = f"""
         SELECT Date, Active, Deaths, Recovered 
         FROM day_wise 
         WHERE Date BETWEEN '{start_date}' AND '{end_date}' 
         ORDER BY Date;
     """
+    
     filtered_data = pd.read_sql(query, connection)
+    connection.close()
     
     plt.figure(figsize=(12, 4))
     plt.plot(filtered_data['Date'], filtered_data['Active'], label='Active Cases', color='blue')
