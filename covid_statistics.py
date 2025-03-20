@@ -2,6 +2,7 @@ import sqlite3
 import pandas as pd
 import plotly.express as px
 import matplotlib.pyplot as plt
+import numpy as np
 
 db_path = "covid_database.db"
 
@@ -14,13 +15,13 @@ def plot_continent_map(continent):
     
     if continent == "All":
         query = """
-            SELECT "Country.Region", ActiveCases, Population
+            SELECT "Country.Region" AS "Country", TotalCases AS "Total Cases", Population
             FROM worldometer_data
             WHERE Continent IS NOT NULL
         """
     else:
         query = """
-            SELECT "Country.Region", ActiveCases, Population
+            SELECT "Country.Region" AS "Country", TotalCases AS "Total Cases", Population
             FROM worldometer_data
             WHERE continent = ?
         """
@@ -28,15 +29,35 @@ def plot_continent_map(continent):
     df_continent_map = pd.read_sql(query, connection, params=(continent,) if continent != "All" else None)
     connection.close()  # Close connection after fetching data
     
-    df_continent_map["Total Cases"] = df_continent_map["ActiveCases"]
+    df_continent_map["Log Total Cases"] = np.log1p(df_continent_map["Total Cases"])
     
     fig = px.choropleth(
         df_continent_map, 
-        locations="Country.Region", 
+        locations="Country", 
         locationmode="country names", 
-        color="Total Cases", 
-        color_continuous_scale="Turbo"
+        color="Log Total Cases", 
+        color_continuous_scale="Blues",
+        hover_name="Country",  # Show country name on hover
+        hover_data={"Total Cases": True, "Log Total Cases": False, "Country": False}  # Show actual cases, hide log values
     )
+
+    # Custom hover template: removes extra space by formatting the text
+    fig.update_traces(
+        hovertemplate="<b>%{location}</b>: %{customdata[0]:,} Cases",  # Removes extra line break
+        customdata=df_continent_map[["Total Cases"]].values  # Pass actual case count
+    )
+
+
+    # Update color bar labels
+    fig.update_layout(
+        coloraxis_colorbar=dict(
+            title="Log(Total Cases)",  # Label the color bar correctly
+            tickmode="array",
+            tickvals=np.log1p([1, 10, 100, 1000, 10000, 100000, 1000000]),  # Log-scaled tick marks
+            ticktext=["1", "10", "100", "1K", "10K", "100K", "1M"]  # Readable labels
+        )
+    )
+
 
     return fig
 

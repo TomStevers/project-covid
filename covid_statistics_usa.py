@@ -45,23 +45,31 @@ def create_map(dataframe, category):
     Creates a scatter geo map for the given data.
     """
     color_map = {'Confirmed': 'red', 'Deaths': 'blue'}
-    fig = px.scatter_geo(dataframe,
-                         lat='Lat', 
-                         lon='Long_',
-                         color='Category',
-                         color_discrete_map=color_map,
-                         hover_name='Admin2',
-                         hover_data=['Province_State', 'Total'],
-                         title=f"Top 10 U.S. Counties with Most {category} Cases",
-                         scope="usa")
     
+    fig = px.scatter_geo(
+        dataframe,
+        lat='Lat', 
+        lon='Long_',
+        color='Category',
+        color_discrete_map=color_map,
+        hover_name='Admin2',  
+        hover_data={'Total': True},  
+        title=f"Top 10 U.S. Counties with Most {category} Cases",
+        scope="usa",
+    )
+
+    fig.update_traces(
+        hovertemplate="<b>%{hovertext}</b>: %{customdata[0]:,} Cases",  
+        customdata=dataframe[['Total']].values  # Use actual case count
+    )
+
     fig.update_geos(
         showcoastlines=True,  
         showland=True,  
-        landcolor='#DEEBF7',  # Changes only the USA land color
-        lakecolor="lightblue",  # Keeps lakes distinct
-        showocean=True,  # Ensures ocean areas are colored
-        oceancolor="lightblue"  # Ocean color
+        landcolor='#DEEBF7',  # Light blue USA land
+        lakecolor="lightblue",  # Light blue-gray lakes
+        showocean=True,  
+        oceancolor="lightblue"  # Slightly darker blue ocean
     )
 
     return fig
@@ -106,14 +114,37 @@ def plot_usa_choropleth(connection):
     """
     df = pd.read_sql(query, connection)
 
-    # Convert full state names to abbreviations
-    df["State"] = df["State"].map(STATE_ABBREVIATIONS)
+    # ✅ Create a new "Abbreviation" column, instead of overwriting "State"
+    df["Abbreviation"] = df["State"].map(STATE_ABBREVIATIONS)
 
-    fig = px.choropleth(df, 
-                        locations="State", 
-                        locationmode="USA-states",
-                        color="Total Confirmed",
-                        color_continuous_scale="Blues",
-                        title="Total Confirmed COVID-19 Cases by State",
-                        scope="usa")
+    # ✅ Drop rows where abbreviation is missing (avoids errors in mapping)
+    df = df.dropna(subset=["Abbreviation"])
+
+    # ✅ Use "Abbreviation" for mapping, but "State" for hover
+    fig = px.choropleth(
+        df, 
+        locations="Abbreviation",  # Use abbreviations for mapping
+        locationmode="USA-states",  
+        color="Total Confirmed",
+        color_continuous_scale="Blues",
+        title="Total Confirmed COVID-19 Cases by State",
+        scope="usa",
+        hover_name="State",  # Show full state name in hover
+        hover_data={"Total Confirmed": True, "State": False, "Abbreviation": False}  # Show cases, hide extra fields
+    )
+
+    # 🖱 **Custom hover formatting: Full state name + total cases on the same line**
+    fig.update_traces(
+        hovertemplate="<b>%{hovertext}</b>: %{z:,} Cases",  # Shows full state name & formatted cases
+        hovertext=df["State"]  # Uses full state name instead of abbreviation
+    )
+
+    # 🎨 **Update color bar labels for clarity**
+    fig.update_layout(
+        coloraxis_colorbar=dict(
+            title="Total Cases",
+            tickformat=","  # Adds commas for readability (e.g., 1,000,000)
+        )
+    )
+
     return fig

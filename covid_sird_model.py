@@ -19,7 +19,8 @@ def get_population_from_db(country):
     
     country_mapping = {
         "US": "USA",
-        "Holy See": "Vatican City"  
+        "Holy See": "Vatican City", 
+        "United Kingdom": "UK"
     }
     
     mapped_country = country_mapping.get(country, country)
