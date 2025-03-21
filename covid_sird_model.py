@@ -62,7 +62,7 @@ def estimate_parameters(country):
     country_df["DeltaI"] = country_df["Active"].diff().fillna(0)
     
     # Estimate mortality rate (mu)
-    country_df["mu"] = (country_df["DeltaD"] / country_df["Active"]).fillna(0)
+    country_df["mu"] = (country_df["DeltaD"] / country_df["Active"]).clip(lower=0).fillna(0)
     
     # Assume gamma (recovery rate) as 1/4.5 days
     country_df["gamma"] = 1 / 4.5
