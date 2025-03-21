@@ -62,11 +62,11 @@ with tab1:
     col3, col4 = st.columns(2)
 
     with col3:
-        st.subheader("🔝 Most Cases")
+        st.subheader("🔝 Highest Infection Rate", help = "The infection rate is calculated by dividing the total number of cases by the population")
         st.dataframe(top_cases_df, use_container_width=True, hide_index=True)
         
     with col4:
-        st.subheader("⚰️ Most Deaths")
+        st.subheader("⚰️ Highest Mortality Rate", help = "The mortality rate is calculated by divinding the number of deaths by the population" )
         st.dataframe(top_deaths_df, use_container_width=True, hide_index=True)
 
 with tab2:
