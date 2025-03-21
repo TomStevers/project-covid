@@ -5,6 +5,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 db_path = "covid_database.db"
+connection = sqlite3.connect(db_path)
+csv_path = "cleaned_complete.csv" 
+df = pd.read_csv(csv_path, parse_dates=["Date"])
 
 def get_db_connection():
     """Create and return a new database connection."""
@@ -27,9 +30,9 @@ def plot_continent_map(continent):
         """
     
     df_continent_map = pd.read_sql(query, connection, params=(continent,) if continent != "All" else None)
-    connection.close()  # Close connection after fetching data
-    
     df_continent_map["Log Total Cases"] = np.log1p(df_continent_map["Total Cases"])
+
+    connection.close()  # Close connection after fetching data
     
     fig = px.choropleth(
         df_continent_map, 
@@ -41,12 +44,21 @@ def plot_continent_map(continent):
         hover_data={"Total Cases": True, "Log Total Cases": False, "Country": False}  # Show actual cases, hide log values
     )
 
+    scope_mapping = {
+        "All": "world",
+        "Europe": "europe",
+        "Asia": "asia",
+        "Africa": "africa",
+        "North America": "north america",
+        "South America": "south america",
+        "Australia/Oceania": None  # No direct support, custom settings needed
+    }
+
     # Custom hover template: removes extra space by formatting the text
     fig.update_traces(
         hovertemplate="<b>%{location}</b>: %{customdata[0]:,} Cases",  # Removes extra line break
         customdata=df_continent_map[["Total Cases"]].values  # Pass actual case count
     )
-
 
     # Update color bar labels
     fig.update_layout(
@@ -55,9 +67,24 @@ def plot_continent_map(continent):
             tickmode="array",
             tickvals=np.log1p([1, 10, 100, 1000, 10000, 100000, 1000000]),  # Log-scaled tick marks
             ticktext=["1", "10", "100", "1K", "10K", "100K", "1M"]  # Readable labels
+        ),
+        geo=dict(
+            scope=scope_mapping.get(continent, "world"),
+            showcoastlines=True,
+            showland=False
         )
     )
 
+    # Custom handling for Australia/Oceania (no predefined scope)
+    if continent == "Australia/Oceania":
+        fig.update_layout(
+            geo=dict(
+                projection_type="orthographic",
+                center={"lat": -25, "lon": 140},
+                lataxis_range=[-50, 10],
+                lonaxis_range=[110, 180],
+            )
+        )
 
     return fig
 
@@ -88,28 +115,32 @@ def compare_death_rates():
 def top_countries_by_cases():
     connection = get_db_connection()
     query = """
-        SELECT "Country.Region" AS Countries, TotalCases AS "Total Cases"
+        SELECT "Country.Region" AS Countries, ((TotalCases * 1.0 / Population) * 100) AS "Total Cases"
         FROM worldometer_data
         WHERE Population IS NOT NULL
-        ORDER BY TotalCases DESC
-        LIMIT 5
+        ORDER BY "Total Cases" DESC
+        LIMIT 10
     """
-    df_cases = pd.read_sql(query, connection)
+    df_cases = pd.read_sql(query, connection) 
     connection.close()
+
+    df_cases["Total Cases"] = df_cases["Total Cases"].map(lambda x: f"{x:.2f}%")
     
     return df_cases
 
 def top_countries_by_deathrate():
     connection = get_db_connection()
     query = """
-        SELECT "Country.Region" AS Countries, (TotalDeaths * 1.0 / Population) AS "Death Rate"
+        SELECT "Country.Region" AS Countries, ("Deaths.1M.pop" / 10000) AS "Death Rate"
         FROM worldometer_data
         WHERE Population IS NOT NULL
         ORDER BY "Death Rate" DESC
-        LIMIT 5
+        LIMIT 10
     """
     df_deaths = pd.read_sql(query, connection)
     connection.close()
+
+    df_deaths["Death Rate"] = df_deaths["Death Rate"].map(lambda x: f"{x:.2f}%")
 
     return df_deaths
 
@@ -161,8 +192,6 @@ def plot_totals(start_date, end_date):
     plt.legend()
     return plt
 
-csv_path = "cleaned_complete.csv"
-df = pd.read_csv(csv_path, parse_dates=["Date"])
 
 def plot_covid_spread_animation():
     """
@@ -212,6 +241,6 @@ def plot_covid_spread_animation():
         countrycolor="black",  
     )
 
-    fig.update_layout(coloraxis_showscale=False)
+    fig.update_layout(coloraxis_showscale=False, showlegend=False)
 
     return fig
