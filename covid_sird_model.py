@@ -1,5 +1,6 @@
 import sqlite3
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import plotly.express as px
 
@@ -78,13 +79,33 @@ def estimate_parameters(country):
     
     return country_df[["Date", "alpha", "beta", "gamma", "mu", "R0"]]
 
+def get_smooth_function(country):
+    df_parameters = estimate_parameters(country)
+
+    df_parameters['smoothed_alpha'] = df_parameters['alpha'].rolling(window=3, center=True).mean()
+    df_parameters['smoothed_beta'] = df_parameters['beta'].rolling(window=3, center=True).mean()
+    df_parameters['smoothed_mu'] = df_parameters['mu'].rolling(window=3, center=True).mean()
+    df_parameters['smoothed_R0'] = df_parameters['R0'].rolling(window=3, center=True).mean()
+
+    for i in range(0,10):
+        df_parameters['smoothed_mu'] = df_parameters['smoothed_mu'].rolling(window=3, center=True).mean()
+        df_parameters['smoothed_alpha'] = df_parameters['smoothed_alpha'].rolling(window=3, center=True).mean()
+        df_parameters['smoothed_beta'] = df_parameters['smoothed_beta'].rolling(window=3, center=True).mean()
+        df_parameters['smoothed_R0'] = df_parameters['smoothed_R0'].rolling(window=3, center=True).mean()
+    
+    return df_parameters
+
 def plot_R0_trajectory(df, country):
   # Generate an R0 trajectory plot for the selected country.
     if df.empty:
         return None 
     
+    # Get dataframe of the smoothed function
+    df_smoothed = get_smooth_function(country)
+
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.plot(df["Date"], df["R0"], linestyle="-", color="blue", label=f"$R_0$ for {country}")
+    ax.plot(df_smoothed["Date"], df_smoothed["smoothed_R0"], linestyle="-", color="red", label="Smoothed Death Rate")
     ax.set_xlabel("Date")
     ax.set_ylabel("$R_0$")
     ax.set_title(f"$R_0$ Over Time for {country}")
@@ -97,9 +118,13 @@ def plot_death_rate(df, country):
     # Generate a death rate trajectory plot for the selected country.
     if df.empty:
         return None  
-    
+
+    # Get dataframe of the smoothed function
+    df_smoothed = get_smooth_function(country)
+
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.plot(df["Date"], df["mu"], linestyle="-", color="red", label=f"Death Rate for {country}")
+    ax.plot(df_smoothed["Date"], df_smoothed["smoothed_mu"], linestyle="-", color="blue", label="Smoothed Death Rate")
     ax.set_xlabel("Date")
     ax.set_ylabel("Death Rate (μ)")
     ax.set_title(f"Death Rate Over Time for {country}")
@@ -108,3 +133,40 @@ def plot_death_rate(df, country):
     
     return fig
 
+def plot_alpha(df, country):
+    # Generate a death rate trajectory plot for the selected country.
+    if df.empty:
+        return None  
+
+    # Get dataframe of the smoothed function
+    df_smoothed = get_smooth_function(country)
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.plot(df["Date"], df["alpha"], linestyle="-", color="green", label=f"Alpha for {country}")
+    ax.plot(df_smoothed["Date"], df_smoothed["smoothed_alpha"], linestyle="-", color="red", label="Smoothed Alpha")
+    ax.set_xlabel("Date")
+    ax.set_ylabel("Alpha (α)")
+    ax.set_title(f"Alpha Over Time for {country}")
+    ax.legend()
+    plt.xticks(rotation=45)
+    
+    return fig
+
+def plot_beta(df, country):
+    # Generate a death rate trajectory plot for the selected country.
+    if df.empty:
+        return None  
+
+    # Get dataframe of the smoothed function
+    df_smoothed = get_smooth_function(country)
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.plot(df["Date"], df["beta"], linestyle="-", color="purple", label=f"Beta for {country}")
+    ax.plot(df_smoothed["Date"], df_smoothed["smoothed_beta"], linestyle="-", color="blue", label="Smoothed Beta")
+    ax.set_xlabel("Date")
+    ax.set_ylabel("Beta (β)")
+    ax.set_title(f"Beta Over Time for {country}")
+    ax.legend()
+    plt.xticks(rotation=45)
+    
+    return fig
