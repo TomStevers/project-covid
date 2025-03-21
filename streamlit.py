@@ -131,3 +131,4 @@ with tab3:
         top_x_deaths = get_top_x_data(connection, 'Deaths')[["Admin2", "Total"]]
         top_x_deaths = top_x_deaths.rename(columns={"Admin2": "County", "Total": "Deaths"})
         st.dataframe(top_x_deaths, use_container_width=True, hide_index=True)
+
