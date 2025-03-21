@@ -99,6 +99,26 @@ with tab2:
             st.pyplot(fig_death)
         else:
             st.error(f"No death rate data available for {selected_country}.")
+    
+    col3, col4 = st.columns(2)
+    
+    # Display Alpha Trajectory in the third column
+    with col3:
+        st.subheader("Alpha Over Time")
+        fig_alpha = plot_alpha(r0_data, selected_country)
+        if fig_alpha:
+            st.pyplot(fig_alpha)
+        else:
+            st.error(f"No alpha data available for {selected_country}.")
+    
+    # Display Beta Trajectory in the fourth column
+    with col4:
+        st.subheader("Beta Over Time")
+        fig_beta = plot_beta(r0_data, selected_country)
+        if fig_beta:
+            st.pyplot(fig_beta)
+        else:
+            st.error(f"No beta data available for {selected_country}.")
 
 with tab3:
     st.title("🇺🇸 USA Stats")
