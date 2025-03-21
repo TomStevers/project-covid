@@ -160,3 +160,58 @@ def plot_totals(start_date, end_date):
     plt.xticks([filtered_data['Date'].iloc[0], filtered_data['Date'].iloc[-1]])
     plt.legend()
     return plt
+
+csv_path = "cleaned_complete.csv"
+df = pd.read_csv(csv_path, parse_dates=["Date"])
+
+def plot_covid_spread_animation():
+    """
+    Creates an animated world map showing when each country first reported COVID-19.
+    """
+
+    # Keep necessary columns
+    df_filtered = df[["Country.Region", "Date", "Confirmed"]].copy()
+
+    # Convert Confirmed cases to a binary indicator (1 if cases > 0, else 0)
+    df_filtered["Had COVID"] = df_filtered["Confirmed"] > 0
+
+    # Sort by date and keep only the first date when a country had a confirmed case
+    df_first_case = df_filtered[df_filtered["Had COVID"]].groupby("Country.Region", as_index=False)["Date"].min()
+
+    # Format the date as a string for display
+    df_first_case["First Case Date"] = df_first_case["Date"].dt.strftime('%Y-%m-%d')
+
+    # Create a column to use for animation
+    all_dates = df_filtered["Date"].dt.strftime('%Y-%m-%d').unique()
+    all_dates = [date for date in all_dates if date <= "2020-05-20"] #Stops at 20th of May because every country has had a Covid cases at that point
+
+    df_expanded = pd.DataFrame()
+    for date in all_dates:
+        temp = df_first_case[df_first_case["Date"].dt.strftime('%Y-%m-%d') <= date].copy()
+        temp["Animation Date"] = date
+        temp["Had COVID"] = 1  # Ensure this column is added (1 means affected)
+        df_expanded = pd.concat([df_expanded, temp])
+
+    # Ensure "Had COVID" is actually present in df_expanded
+    df_expanded = df_expanded[["Country.Region", "Animation Date", "Had COVID", "First Case Date"]]
+
+    fig = px.choropleth(
+        df_expanded,
+        locations="Country.Region",
+        locationmode="country names",
+        color_continuous_scale=["White", "Blue"], 
+        hover_name="Country.Region",
+        hover_data={"Had COVID": False, "First Case Date": True,"Country.Region": False, "Animation Date": False},  # Show first case date on hover
+        animation_frame="Animation Date",
+        title="Spread of COVID-19 Over Time"
+    )
+
+    # Add country borders
+    fig.update_geos(
+        showcountries=True,
+        countrycolor="black",  
+    )
+
+    fig.update_layout(coloraxis_showscale=False)
+
+    return fig
