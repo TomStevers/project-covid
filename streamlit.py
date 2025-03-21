@@ -47,6 +47,12 @@ with tab1:
         st.metric(label="Total Recovered", value=total_recovered)
         st.metric(label="Total Confirmed", value=total_confirmed)
     
+
+    st.subheader("🗺️ COVID-19 Spread Over Time (Animated)")
+    st.plotly_chart(plot_covid_spread_animation(), use_container_width=True)
+
+    st.divider()
+
     # Full-width graph
     st.subheader("📊 COVID-19 Trends")
     st.pyplot(plot_totals(start_date, end_date), use_container_width=True)
