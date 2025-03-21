@@ -13,7 +13,7 @@ df_cleaned = df.drop_duplicates(keep="first")
 after_count = df_cleaned.shape[0]
 
 # List of countries to merge provinces into a single entry
-countries_to_merge = ["China", "Canada", "Australia", "Denmark"]
+countries_to_merge = ["China", "Canada", "Australia", "Faroe Islands"]
 
 # Separate data: one for merging, one for keeping as is
 df_merge = df_cleaned[df_cleaned["Country.Region"].isin(countries_to_merge)]
@@ -33,7 +33,7 @@ central_coords = {
     "China": (35.8617, 104.1954),
     "Canada": (56.1304, -106.3468),
     "Australia": (-25.2744, 133.7751),
-    "Denmark": (56.2639, 9.5018)
+    "Faroe Islands": (61.8926, -6.9118)
 }
 
 df_merged["Lat"] = df_merged["Country.Region"].map(lambda x: central_coords[x][0])
@@ -43,16 +43,14 @@ df_merged["Long"] = df_merged["Country.Region"].map(lambda x: central_coords[x][
 territory_mapping = {
     "UK Overseas Territories": ["Bermuda", "Gibraltar", "Falkland Islands (Malvinas)", "Montserrat", "Turks and Caicos Islands", "Cayman Islands", "British Virgin Islands", "Anguilla", "Isle of Man", "Channel Islands"],
     "French Overseas Territories": ["Guadeloupe", "Martinique", "Réunion", "Mayotte", "New Caledonia", "French Polynesia", "Saint Pierre and Miquelon", "Wallis and Futuna", "French Guiana", "Reunion", "Saint Barthelemy", "St Martin"],
-    "Caribbean Netherlands": ["Aruba", "Sint Maarten", "Curacao"],
-    "Denmark": ["Faroe Islands"]
+    "Caribbean Netherlands": ["Aruba", "Sint Maarten", "Curacao"]
 }
 
 # Assign fixed lat/long for merged territories
 territory_coords = {
     "UK Overseas Territories": (18.2208, -63.0686),
     "French Overseas Territories": (-21.1151, 55.5364),
-    "Caribbean Netherlands": (12.1784, -68.2385),
-    "Denmark": (56.2639, 9.5018)  
+    "Caribbean Netherlands": (12.1784, -68.2385)
 }
 
 # Separate data for territories
@@ -67,7 +65,7 @@ for new_region, territories in territory_mapping.items():
         "Deaths": "sum",
         "Recovered": "sum",
         "Active": "sum",
-        "WHO.Region": "first"  
+        "WHO.Region": "first"  # Keep first WHO region entry
     })
     df_grouped["Country.Region"] = new_region
     df_grouped["Province.State"] = 0
@@ -77,22 +75,6 @@ for new_region, territories in territory_mapping.items():
 
 # Combine all data
 df_final = pd.concat([df_other, df_merged] + df_merged_list, ignore_index=True)
-
-# Ensure there is only one Denmark by merging Faroe Islands data into Denmark
-if "Denmark" in df_final["Country.Region"].values:
-    df_denmark = df_final[df_final["Country.Region"] == "Denmark"].groupby(["Date"], as_index=False).agg({
-        "Confirmed": "sum",
-        "Deaths": "sum",
-        "Recovered": "sum",
-        "Active": "sum",
-        "WHO.Region": "first"
-    })
-    df_denmark["Country.Region"] = "Denmark"
-    df_denmark["Province.State"] = 0
-    df_denmark["Lat"] = central_coords["Denmark"][0]
-    df_denmark["Long"] = central_coords["Denmark"][1]
-    df_final = df_final[df_final["Country.Region"] != "Denmark"]
-    df_final = pd.concat([df_final, df_denmark], ignore_index=True)
 
 # Sort first by Date, then by Country.Region alphabetically
 df_final = df_final.sort_values(by=["Date", "Country.Region"]).reset_index(drop=True)
@@ -111,12 +93,3 @@ print(f"Total Rows Before : {before_count}")
 print(f"Total Rows After: {after_count}")
 print(f"Duplicates removed: {before_count - after_count}")
 print("Missing values per column:\n", missing_values)
-
-
-
-
-
-
-
-
-
