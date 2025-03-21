@@ -59,7 +59,7 @@ def update_database():
             """
         # India was used for the calculations of the total cases, active cases, total deaths and total recovered for China
         # The data for Population was the approximate population of China in 2020
-        elif countries == 'China' :
+        elif country == 'China' :
             # Checking if China already exists so if the function is runs twice there won't be a duplicate row 
             cursor.execute("SELECT COUNT(*) FROM worldometer_data WHERE \"Country.Region\" = 'China'")
             exists = cursor.fetchone()[0]
