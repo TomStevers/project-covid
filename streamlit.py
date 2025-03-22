@@ -79,12 +79,18 @@ with tab2:
 
     st.header(f"COVID-19 Cases in {selected_country}")
 
-    # Call the function to generate the plot
+    #Call the function to generate the plot
     fig = plot_sird_model(selected_country)
     if fig:
         st.pyplot(fig)
     else:
         st.warning(f"No data available for {selected_country}.")
+
+    # fig_smoothed_sird = plot_smooth_sird(selected_country)
+    # if fig_smoothed_sird:
+    #     st.pyplot(fig_smoothed_sird)
+    # else:
+    #     st.warning(f"No data available for {selected_country}.")
 
     # Create two columns for side-by-side layout
     col1, col2 = st.columns([1, 1])  # Adjust the ratio if needed
