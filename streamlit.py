@@ -70,7 +70,21 @@ with tab1:
         st.dataframe(top_deaths_df, use_container_width=True, hide_index=True)
 
 with tab2:
-    st.title("📈 SIRD Model", help = "Select a country on the sidebar to display the estimation for the SIRD parameters.")
+    st.title("📈 SIRD Model")
+    
+    # Sidebar selection
+    available_countries = creating_available_countries()
+    selected_country = st.sidebar.selectbox("Select a Country", available_countries)
+
+
+    st.header(f"COVID-19 Cases in {selected_country}")
+
+    # Call the function to generate the plot
+    fig = plot_sird_model(selected_country)
+    if fig:
+        st.pyplot(fig)
+    else:
+        st.warning(f"No data available for {selected_country}.")
 
     # Create two columns for side-by-side layout
     col1, col2 = st.columns([1, 1])  # Adjust the ratio if needed
