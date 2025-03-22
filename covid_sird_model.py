@@ -105,7 +105,7 @@ def plot_R0_trajectory(df, country):
 
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.plot(df["Date"], df["R0"], linestyle="-", color="blue", label=f"$R_0$ for {country}")
-    ax.plot(df_smoothed["Date"], df_smoothed["smoothed_R0"], linestyle="-", color="red", label="Smoothed Death Rate")
+    ax.plot(df_smoothed["Date"], df_smoothed["smoothed_R0"], linestyle="-", color="red", label="Smoothed R0")
     ax.set_xlabel("Date")
     ax.set_ylabel("$R_0$")
     ax.set_title(f"$R_0$ Over Time for {country}")
@@ -123,8 +123,8 @@ def plot_death_rate(df, country):
     df_smoothed = get_smooth_function(country)
 
     fig, ax = plt.subplots(figsize=(10, 5))
-    ax.plot(df["Date"], df["mu"], linestyle="-", color="red", label=f"Death Rate for {country}")
-    ax.plot(df_smoothed["Date"], df_smoothed["smoothed_mu"], linestyle="-", color="blue", label="Smoothed Death Rate")
+    ax.plot(df["Date"], df["mu"], linestyle="-", color="blue", label=f"Death Rate for {country}")
+    ax.plot(df_smoothed["Date"], df_smoothed["smoothed_mu"], linestyle="-", color="red", label="Smoothed Death Rate")
     ax.set_xlabel("Date")
     ax.set_ylabel("Death Rate (μ)")
     ax.set_title(f"Death Rate Over Time for {country}")
@@ -142,7 +142,7 @@ def plot_alpha(df, country):
     df_smoothed = get_smooth_function(country)
 
     fig, ax = plt.subplots(figsize=(10, 5))
-    ax.plot(df["Date"], df["alpha"], linestyle="-", color="green", label=f"Alpha for {country}")
+    ax.plot(df["Date"], df["alpha"], linestyle="-", color="blue", label=f"Alpha for {country}")
     ax.plot(df_smoothed["Date"], df_smoothed["smoothed_alpha"], linestyle="-", color="red", label="Smoothed Alpha")
     ax.set_xlabel("Date")
     ax.set_ylabel("Alpha (α)")
@@ -161,12 +161,44 @@ def plot_beta(df, country):
     df_smoothed = get_smooth_function(country)
 
     fig, ax = plt.subplots(figsize=(10, 5))
-    ax.plot(df["Date"], df["beta"], linestyle="-", color="purple", label=f"Beta for {country}")
-    ax.plot(df_smoothed["Date"], df_smoothed["smoothed_beta"], linestyle="-", color="blue", label="Smoothed Beta")
+    ax.plot(df["Date"], df["beta"], linestyle="-", color="blue", label=f"Beta for {country}")
+    ax.plot(df_smoothed["Date"], df_smoothed["smoothed_beta"], linestyle="-", color="red", label="Smoothed Beta")
     ax.set_xlabel("Date")
     ax.set_ylabel("Beta (β)")
     ax.set_title(f"Beta Over Time for {country}")
     ax.legend()
     plt.xticks(rotation=45)
     
+    return fig
+
+def plot_sird_model(selected_country):
+    # Load data
+    df = pd.read_csv("cleaned_complete.csv", parse_dates=["Date"])
+
+    # Filter data for selected country
+    country_df = df[df["Country.Region"] == selected_country].copy()
+
+    if country_df.empty:
+        return None  # Return None if no data is available for the selected country
+
+    # Sort by date to ensure correct calculations
+    country_df.sort_values("Date", inplace=True)
+
+    # Compute daily new cases, deaths, and recovered
+    country_df["New_Cases"] = country_df["Confirmed"].diff().fillna(0)
+    country_df["New_Deaths"] = country_df["Deaths"].diff().fillna(0)
+    country_df["New_Recovered"] = country_df["Recovered"].diff().fillna(0)
+
+    # Plot data
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.plot(country_df["Date"], country_df["New_Cases"], label="Cases", color="blue")
+    ax.plot(country_df["Date"], country_df["New_Deaths"], label="Deaths", color="red")
+    ax.plot(country_df["Date"], country_df["New_Recovered"], label="Recovered", color="green")
+    
+    ax.set_xlabel("Date")
+    ax.set_ylabel("Cases")
+    ax.set_title(f"COVID-19 Cases in {selected_country}")
+    ax.legend()
+    plt.xticks(rotation=45)
+
     return fig
