@@ -6,19 +6,18 @@ def getDataFrame(table):
     connection = sqlite3.connect('covid_database.db')
     cursor = connection.cursor()
     
-    # Construct the SQL query
+    # SQL Query
     query = f"SELECT * FROM {table}"  
+    cursor.execute(query)
+    rows = cursor.fetchall()  
 
-    cursor.execute(query)  # Execute query
-    rows = cursor.fetchall()  # Fetch data
-
-    # Get column names dynamically
+    # Get column names
     column_names = [desc[0] for desc in cursor.description]
 
     # Create DataFrame with correct column names
     df = pd.DataFrame(rows, columns=column_names)
 
-    return df, column_names  # Return both DataFrame and column names
+    return df, column_names  
 
 # List of tables
 tables = ["country_wise", "day_wise", "usa_county_wise", "worldometer_data"]

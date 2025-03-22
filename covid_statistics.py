@@ -5,14 +5,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 db_path = "covid_database.db"
-connection = sqlite3.connect(db_path)
 csv_path = "cleaned_complete.csv" 
 df = pd.read_csv(csv_path, parse_dates=["Date"])
 
+# Create and return a new database connection
 def get_db_connection():
-    """Create and return a new database connection."""
     return sqlite3.connect(db_path, check_same_thread=False)
 
+# Create continent map
 def plot_continent_map(continent):
     connection = get_db_connection()
     
@@ -32,7 +32,7 @@ def plot_continent_map(continent):
     df_continent_map = pd.read_sql(query, connection, params=(continent,) if continent != "All" else None)
     df_continent_map["Log Total Cases"] = np.log1p(df_continent_map["Total Cases"])
 
-    connection.close()  # Close connection after fetching data
+    connection.close()  
     
     fig = px.choropleth(
         df_continent_map, 
@@ -40,8 +40,8 @@ def plot_continent_map(continent):
         locationmode="country names", 
         color="Log Total Cases", 
         color_continuous_scale="Blues",
-        hover_name="Country",  # Show country name on hover
-        hover_data={"Total Cases": True, "Log Total Cases": False, "Country": False}  # Show actual cases, hide log values
+        hover_name="Country",  
+        hover_data={"Total Cases": True, "Log Total Cases": False, "Country": False}  
     )
 
     scope_mapping = {
@@ -51,22 +51,22 @@ def plot_continent_map(continent):
         "Africa": "africa",
         "North America": "north america",
         "South America": "south america",
-        "Australia/Oceania": None  # No direct support, custom settings needed
+        "Australia/Oceania": None  
     }
 
-    # Custom hover template: removes extra space by formatting the text
+    # Custom hover template
     fig.update_traces(
-        hovertemplate="<b>%{location}</b>: %{customdata[0]:,} Cases",  # Removes extra line break
-        customdata=df_continent_map[["Total Cases"]].values  # Pass actual case count
+        hovertemplate="<b>%{location}</b>: %{customdata[0]:,} Cases", 
+        customdata=df_continent_map[["Total Cases"]].values  
     )
 
     # Update color bar labels
     fig.update_layout(
         coloraxis_colorbar=dict(
-            title="Log(Total Cases)",  # Label the color bar correctly
+            title="Log(Total Cases)",  
             tickmode="array",
             tickvals=np.log1p([1, 10, 100, 1000, 10000, 100000, 1000000]),  # Log-scaled tick marks
-            ticktext=["1", "10", "100", "1K", "10K", "100K", "1M"]  # Readable labels
+            ticktext=["1", "10", "100", "1K", "10K", "100K", "1M"]  
         ),
         geo=dict(
             scope=scope_mapping.get(continent, "world"),
@@ -75,7 +75,7 @@ def plot_continent_map(continent):
         )
     )
 
-    # Custom handling for Australia/Oceania (no predefined scope)
+    # Custom handling for Australia/Oceania
     if continent == "Australia/Oceania":
         fig.update_layout(
             geo=dict(
@@ -88,6 +88,7 @@ def plot_continent_map(continent):
 
     return fig
 
+# Compare deathrate per continent
 def compare_death_rates():
     connection = get_db_connection()
     query = """
@@ -100,18 +101,27 @@ def compare_death_rates():
     connection.close()
     
     df["DeathRate"] = df["Deaths"] / df["Population"]
-    
-    fig = px.pie(
+    df["DeathRate"] *= 100  
+
+    # Create bar chart 
+    fig = px.bar(
         df, 
-        names="Continent", 
-        values="DeathRate", 
-        title="Death Rates Across Continents", 
-        hole=0.4,
-        color_discrete_sequence=px.colors.sequential.Reds
+        x="Continent", 
+        y="DeathRate", 
+        title="COVID-19 Death Rates Across Continents", 
+        labels={"DeathRate": "Death Rate (%)", "Continent": "Continent"},
+        text=df["DeathRate"].round(2),  
+        color="DeathRate",  
+        color_continuous_scale=px.colors.sequential.Blues
     )
-    
+
+    # Improve layout
+    fig.update_traces(textposition="outside")  
+    fig.update_layout(yaxis=dict(title="Death Rate (%)"), xaxis=dict(title="Continent"))
+
     return fig
 
+# Find the countries with the most cases
 def top_countries_by_cases():
     connection = get_db_connection()
     query = """
@@ -128,6 +138,8 @@ def top_countries_by_cases():
     
     return df_cases
 
+
+# Find the countries with the highest deathrate
 def top_countries_by_deathrate():
     connection = get_db_connection()
     query = """
@@ -144,6 +156,7 @@ def top_countries_by_deathrate():
 
     return df_deaths
 
+# Get the total values for selected date
 def get_totals(start_date, end_date):
     connection = get_db_connection()
     
@@ -167,6 +180,7 @@ def get_totals(start_date, end_date):
     
     return total_active, total_deaths, total_recovered, total_confirmed
 
+# Plot the totals for a selected date
 def plot_totals(start_date, end_date):
     connection = get_db_connection()
     
@@ -192,12 +206,8 @@ def plot_totals(start_date, end_date):
     plt.legend()
     return plt
 
-
+# Creates an animated world map showing when each country first reported COVID-19.
 def plot_covid_spread_animation():
-    """
-    Creates an animated world map showing when each country first reported COVID-19.
-    """
-
     # Keep necessary columns
     df_filtered = df[["Country.Region", "Date", "Confirmed"]].copy()
 
@@ -207,18 +217,18 @@ def plot_covid_spread_animation():
     # Sort by date and keep only the first date when a country had a confirmed case
     df_first_case = df_filtered[df_filtered["Had COVID"]].groupby("Country.Region", as_index=False)["Date"].min()
 
-    # Format the date as a string for display
+    # Format the date as a string 
     df_first_case["First Case Date"] = df_first_case["Date"].dt.strftime('%Y-%m-%d')
 
     # Create a column to use for animation
     all_dates = df_filtered["Date"].dt.strftime('%Y-%m-%d').unique()
-    all_dates = [date for date in all_dates if date <= "2020-05-20"] #Stops at 20th of May because every country has had a Covid cases at that point
+    all_dates = [date for date in all_dates if date <= "2020-05-20"] # Stops at 20th of May because every country has had a Covid cases at that point
 
     df_expanded = pd.DataFrame()
     for date in all_dates:
         temp = df_first_case[df_first_case["Date"].dt.strftime('%Y-%m-%d') <= date].copy()
         temp["Animation Date"] = date
-        temp["Had COVID"] = 1  # Ensure this column is added (1 means affected)
+        temp["Had COVID"] = 1 
         df_expanded = pd.concat([df_expanded, temp])
 
     # Ensure "Had COVID" is actually present in df_expanded

@@ -89,7 +89,6 @@ def load_sir():
         D.append(D[i] + delta_D)
         i += 1
 
-    # Plot results
     create_figure_sir(S,I,R,D)
 
 # Function to update parameters dynamically
@@ -107,7 +106,7 @@ def update_parameters(day):
     return beta, gamma, mu
 
 def get_R0():
-    # Compute R0 (basic reproduction number)
+    # Compute R0
     df = get_data_frame_sir()
     days = len(df)
     R0_values = [update_parameters(t)[0] / update_parameters(t)[1] if update_parameters(t)[1] > 0 else 0 for t in range(1, days)]

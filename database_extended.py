@@ -4,17 +4,18 @@ import numpy as np
 import plotly.express as px
 import matplotlib.pyplot as plt
 
+# Connect to database
+db_path = "covid_database.db"
+connection = sqlite3.connect(db_path)
+cursor = connection.cursor()
+
+
 def update_database():
     # List of all countries that need to be updated
     countries = ['UK', 'Spain', 'Netherlands', 'Sweden', 'China', 'CAR']
     
     # List of new active cases, based on the active cases of a similar country
     cases_fractions = [86204.0, 86204.0, 64503.0, 661.0]
-
-    # Establish a persistent database connection
-    db_path = "covid_database.db"
-    connection = sqlite3.connect(db_path)
-    cursor = connection.cursor()
 
     # Updating active cases and total recovered for the required countries
 

@@ -7,20 +7,16 @@ import plotly.express as px
 db_path = "covid_database.db"
 connection = sqlite3.connect(db_path)
 
+# Finds the most recent date available in the dataset.
 def get_latest_date(connection):
-    """
-    Retrieves the most recent date available in the dataset.
-    """
     query = "SELECT MAX(Date) FROM usa_county_wise"
     latest_date = pd.read_sql(query, connection).iloc[0, 0]
     return latest_date
 
+#  Fetches the top 5 counties in the U.S. based on the given column (Confirmed or Deaths),
+#    only for the most recent available date.
 def get_top_x_data(connection, column_name):
-    """
-    Fetches the top 5 counties in the U.S. based on the given column (Confirmed or Deaths),
-    only for the most recent available date.
-    """
-    latest_date = get_latest_date(connection)  # **Retrieve latest available date**
+    latest_date = get_latest_date(connection)  
     
     query = f"""
         SELECT 
@@ -31,7 +27,7 @@ def get_top_x_data(connection, column_name):
             SUM({column_name}) AS Total
         FROM usa_county_wise
         WHERE Country_Region = 'US' 
-        AND Date = '{latest_date}'  -- **Filter for the latest date**
+        AND Date = '{latest_date}'  -- Filter for the latest date
         GROUP BY Province_State, Admin2
         ORDER BY Total DESC
         LIMIT 10
@@ -40,10 +36,8 @@ def get_top_x_data(connection, column_name):
     df['Category'] = 'Confirmed' if column_name == 'Confirmed' else 'Deaths'
     return df
 
+# create US map 
 def create_map(dataframe, category):
-    """
-    Creates a scatter geo map for the given data.
-    """
     color_map = {'Confirmed': 'red', 'Deaths': 'blue'}
     
     fig = px.scatter_geo(
@@ -66,18 +60,20 @@ def create_map(dataframe, category):
     fig.update_geos(
         showcoastlines=True,  
         showland=True,  
-        landcolor='#DEEBF7',  # Light blue USA land
-        lakecolor="lightblue",  # Light blue-gray lakes
+        landcolor='#DEEBF7',  # Light blue
+        lakecolor="lightblue",  
         showocean=True,  
-        oceancolor="lightblue"  # Slightly darker blue ocean
+        oceancolor="lightblue"  
     )
 
     return fig
 
+# Create mpe with confirmed cases per state
 def plot_confirmed_cases_map(connection):
     top_x_confirmed = get_top_x_data(connection, 'Confirmed')
     return create_map(top_x_confirmed, 'Confirmed')
 
+# Create map with deaths per state
 def plot_deaths_map(connection):
     top_x_deaths = get_top_x_data(connection, 'Deaths')
     return create_map(top_x_deaths, 'Deaths')
@@ -96,11 +92,9 @@ STATE_ABBREVIATIONS = {
     "Virginia": "VA", "Washington": "WA", "West Virginia": "WV", "Wisconsin": "WI", "Wyoming": "WY"
 }
 
+# Creates a choropleth map of confirmed COVID-19 cases by state
 def plot_usa_choropleth(connection):
-    """
-    Creates a choropleth map of confirmed COVID-19 cases by state, using the most recent date.
-    """
-    latest_date = get_latest_date(connection)  # **Retrieve latest available date**
+    latest_date = get_latest_date(connection)  
     
     query = f"""
         SELECT 
@@ -108,19 +102,19 @@ def plot_usa_choropleth(connection):
             SUM(Confirmed) AS "Total Confirmed"
         FROM usa_county_wise
         WHERE Country_Region = 'US' 
-        AND Date = '{latest_date}'  -- **Filter for the latest date**
+        AND Date = '{latest_date}'  -- Filter for the latest date
         AND Province_State NOT IN ('American Samoa', 'Guam', 'Northern Mariana Islands', 'Puerto Rico', 'Virgin Islands')
         GROUP BY Province_State
     """
     df = pd.read_sql(query, connection)
 
-    # ✅ Create a new "Abbreviation" column, instead of overwriting "State"
+    # Create a new "Abbreviation" column, instead of overwriting "State"
     df["Abbreviation"] = df["State"].map(STATE_ABBREVIATIONS)
 
-    # ✅ Drop rows where abbreviation is missing (avoids errors in mapping)
+    # Drop rows where abbreviation is missing
     df = df.dropna(subset=["Abbreviation"])
 
-    # ✅ Use "Abbreviation" for mapping, but "State" for hover
+    # Use "Abbreviation" for mapping, but "State" for hover
     fig = px.choropleth(
         df, 
         locations="Abbreviation",  # Use abbreviations for mapping
@@ -129,21 +123,21 @@ def plot_usa_choropleth(connection):
         color_continuous_scale="Blues",
         title="Total Confirmed COVID-19 Cases by State",
         scope="usa",
-        hover_name="State",  # Show full state name in hover
-        hover_data={"Total Confirmed": True, "State": False, "Abbreviation": False}  # Show cases, hide extra fields
+        hover_name="State", 
+        hover_data={"Total Confirmed": True, "State": False, "Abbreviation": False}
     )
 
-    # 🖱 **Custom hover formatting: Full state name + total cases on the same line**
+    # Format Full state name + total cases on the same line
     fig.update_traces(
-        hovertemplate="<b>%{hovertext}</b>: %{z:,} Cases",  # Shows full state name & formatted cases
-        hovertext=df["State"]  # Uses full state name instead of abbreviation
+        hovertemplate="<b>%{hovertext}</b>: %{z:,} Cases",  
+        hovertext=df["State"]  
     )
 
-    # 🎨 **Update color bar labels for clarity**
+    # Update color bar labels
     fig.update_layout(
         coloraxis_colorbar=dict(
             title="Total Cases",
-            tickformat=","  # Adds commas for readability (e.g., 1,000,000)
+            tickformat=","  
         )
     )
 
