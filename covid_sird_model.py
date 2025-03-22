@@ -170,3 +170,35 @@ def plot_beta(df, country):
     plt.xticks(rotation=45)
     
     return fig
+
+def plot_sird_model(selected_country):
+    # Load data
+    df = pd.read_csv("cleaned_complete.csv", parse_dates=["Date"])
+
+    # Filter data for selected country
+    country_df = df[df["Country.Region"] == selected_country].copy()
+
+    if country_df.empty:
+        return None  # Return None if no data is available for the selected country
+
+    # Sort by date to ensure correct calculations
+    country_df.sort_values("Date", inplace=True)
+
+    # Compute daily new cases, deaths, and recovered
+    country_df["New_Cases"] = country_df["Confirmed"].diff().fillna(0)
+    country_df["New_Deaths"] = country_df["Deaths"].diff().fillna(0)
+    country_df["New_Recovered"] = country_df["Recovered"].diff().fillna(0)
+
+    # Plot data
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.plot(country_df["Date"], country_df["New_Cases"], label="Cases", color="blue")
+    ax.plot(country_df["Date"], country_df["New_Deaths"], label="Deaths", color="red")
+    ax.plot(country_df["Date"], country_df["New_Recovered"], label="Recovered", color="green")
+    
+    ax.set_xlabel("Date")
+    ax.set_ylabel("Cases")
+    ax.set_title(f"COVID-19 Cases in {selected_country}")
+    ax.legend()
+    plt.xticks(rotation=45)
+
+    return fig
