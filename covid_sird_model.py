@@ -80,14 +80,18 @@ def estimate_parameters(country):
     return country_df[["Date", "alpha", "beta", "gamma", "mu", "R0"]]
 
 def get_smooth_function(country):
+    # Getting the dataframe and selecting the amount of iterations
     df_parameters = estimate_parameters(country)
+    n = 10
 
+    # Creating new columns for the smoothed parameters
     df_parameters['smoothed_alpha'] = df_parameters['alpha'].rolling(window=3, center=True).mean()
     df_parameters['smoothed_beta'] = df_parameters['beta'].rolling(window=3, center=True).mean()
     df_parameters['smoothed_mu'] = df_parameters['mu'].rolling(window=3, center=True).mean()
     df_parameters['smoothed_R0'] = df_parameters['R0'].rolling(window=3, center=True).mean()
 
-    for i in range(0,10):
+    # Iterating n times for a smoother function
+    for i in range(0,n):
         df_parameters['smoothed_mu'] = df_parameters['smoothed_mu'].rolling(window=3, center=True).mean()
         df_parameters['smoothed_alpha'] = df_parameters['smoothed_alpha'].rolling(window=3, center=True).mean()
         df_parameters['smoothed_beta'] = df_parameters['smoothed_beta'].rolling(window=3, center=True).mean()
@@ -172,8 +176,47 @@ def plot_beta(df, country):
     return fig
 
 def plot_sird_model(selected_country):
-    # Load data
+    # # Load data
+    # df = pd.read_csv("cleaned_complete.csv", parse_dates=["Date"])
+
+    # # Filter data for selected country
+    # country_df = df[df["Country.Region"] == selected_country].copy()
+
+    # if country_df.empty:
+    #     return None  # Return None if no data is available for the selected country
+
+    # # Sort by date to ensure correct calculations
+    # country_df.sort_values("Date", inplace=True)
+
+    country_df = get_smooth_function_SIRD(selected_country)
+
+    # Compute daily new cases, deaths, and recovered
+    country_df["New_Cases"] = country_df["Confirmed"].diff().fillna(0)
+    country_df["New_Deaths"] = country_df["Deaths"].diff().fillna(0)
+    country_df["New_Recovered"] = country_df["Recovered"].diff().fillna(0)
+
+    # Plot data
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.plot(country_df["Date"], country_df["New_Cases"], label="Cases", color="blue")
+    ax.plot(country_df["Date"], country_df["New_Deaths"], label="Deaths", color="red")
+    ax.plot(country_df["Date"], country_df["New_Recovered"], label="Recovered", color="green")
+    ax.plot(country_df["Date"], country_df["smoothed_cases"], label="Cases", color="blue", linestyle = "--")
+    ax.plot(country_df["Date"], country_df["smoothed_deaths"], label="Deaths", color="red", linestyle = "--")
+    ax.plot(country_df["Date"], country_df["smoothed_recovered"], label="Recovered", color="green", linestyle = "--")
+    
+    
+    ax.set_xlabel("Date")
+    ax.set_ylabel("Cases")
+    ax.set_title(f"COVID-19 Cases in {selected_country}")
+    ax.legend()
+    plt.xticks(rotation=45)
+
+    return fig
+
+def get_smooth_function_SIRD(selected_country):
+    # Load data and selecting amount of iterations
     df = pd.read_csv("cleaned_complete.csv", parse_dates=["Date"])
+    n = 10
 
     # Filter data for selected country
     country_df = df[df["Country.Region"] == selected_country].copy()
@@ -189,11 +232,27 @@ def plot_sird_model(selected_country):
     country_df["New_Deaths"] = country_df["Deaths"].diff().fillna(0)
     country_df["New_Recovered"] = country_df["Recovered"].diff().fillna(0)
 
+    # Creating new column for the smoothed new cases, deaths and recovered
+    country_df['smoothed_cases'] = country_df['New_Cases'].rolling(window=3, center=True).mean()
+    country_df['smoothed_deaths'] = country_df['New_Deaths'].rolling(window=3, center=True).mean()
+    country_df['smoothed_recovered'] = country_df['New_Recovered'].rolling(window=3, center=True).mean()
+
+    for i in range(0,n):
+        country_df['smoothed_cases'] = country_df['smoothed_cases'].rolling(window=3, center=True).mean()
+        country_df['smoothed_deaths'] = country_df['smoothed_deaths'].rolling(window=3, center=True).mean()
+        country_df['smoothed_recovered'] = country_df['smoothed_recovered'].rolling(window=3, center=True).mean()
+    
+    return country_df
+
+def plot_smooth_sird(selected_country):
+    # Loading data 
+    country_df = get_smooth_function_SIRD(selected_country)
+
     # Plot data
     fig, ax = plt.subplots(figsize=(10, 5))
-    ax.plot(country_df["Date"], country_df["New_Cases"], label="Cases", color="blue")
-    ax.plot(country_df["Date"], country_df["New_Deaths"], label="Deaths", color="red")
-    ax.plot(country_df["Date"], country_df["New_Recovered"], label="Recovered", color="green")
+    ax.plot(country_df["Date"], country_df["smoothed_cases"], label="Cases", color="blue")
+    ax.plot(country_df["Date"], country_df["smoothed_deaths"], label="Deaths", color="red")
+    ax.plot(country_df["Date"], country_df["smoothed_recovered"], label="Recovered", color="green")
     
     ax.set_xlabel("Date")
     ax.set_ylabel("Cases")
@@ -202,3 +261,4 @@ def plot_sird_model(selected_country):
     plt.xticks(rotation=45)
 
     return fig
+
