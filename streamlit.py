@@ -37,18 +37,18 @@ with tab1:
     col1, col2 = st.columns([2, 1])
 
     with col1:
-        st.subheader("🌍 Continent Map")
+        st.subheader("🌍 Continent Map", help = "Select a continent in the sidebar to view the total cases of the selected continent")
         st.plotly_chart(plot_continent_map(continent), use_container_width=True)
 
     with col2:
-        st.subheader("🌎 Global Stats")
+        st.subheader("🌎 Global Stats", help = "Overview of the global statistics for Covid-19")
         st.metric(label="Total Active Cases", value=total_active)
         st.metric(label="Total Deaths", value=total_deaths)
         st.metric(label="Total Recovered", value=total_recovered)
         st.metric(label="Total Confirmed", value=total_confirmed)
     
 
-    st.subheader("🗺️ COVID-19 Spread Over Time (Animated)")
+    st.subheader("🗺️ COVID-19 Spread Over Time (Animated)", help = "Press the play button to start the animation of the Covid-19 spread")
     st.plotly_chart(plot_covid_spread_animation(), use_container_width=True)
 
     st.divider()
@@ -70,7 +70,7 @@ with tab1:
         st.dataframe(top_deaths_df, use_container_width=True, hide_index=True)
 
 with tab2:
-    st.title("📈 SIRD Model")
+    st.title("📈 SIRD Model", help = "Select a country on the sidebar to display the estimation for the SIRD parameters.")
 
     # Create two columns for side-by-side layout
     col1, col2 = st.columns([1, 1])  # Adjust the ratio if needed
@@ -122,12 +122,10 @@ with tab2:
 
 with tab3:
     st.title("🇺🇸 USA Stats")
-    # st.subheader("🗺️ COVID-19 Cases by State")
     st.plotly_chart(plot_usa_choropleth(connection), use_container_width=True) 
 
     col1, col2 = st.columns([1, 1])
                             
-
     with col1:
         st.plotly_chart(plot_confirmed_cases_map(connection))
 
@@ -141,13 +139,13 @@ with tab3:
     col3, col4 = st.columns([1, 1])
 
     with col3:
-        st.subheader("US States with most confirmed cases")
+        st.subheader("US Counties with most confirmed cases", help = "Most confirmed cases per county")
         top_x_confirmed = get_top_x_data(connection, 'Confirmed')[["Admin2" , "Total"]]
         top_x_confirmed = top_x_confirmed.rename(columns={"Admin2": "County", "Total": "Confirmed Cases"})
         st.dataframe(top_x_confirmed, use_container_width=True, hide_index=True)
 
     with col4:
-        st.subheader("US States with most Deaths")
+        st.subheader("US Counties with most Deaths", help = "Most deaths per county")
         top_x_deaths = get_top_x_data(connection, 'Deaths')[["Admin2", "Total"]]
         top_x_deaths = top_x_deaths.rename(columns={"Admin2": "County", "Total": "Deaths"})
         st.dataframe(top_x_deaths, use_container_width=True, hide_index=True)

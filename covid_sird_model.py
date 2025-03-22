@@ -105,7 +105,7 @@ def plot_R0_trajectory(df, country):
 
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.plot(df["Date"], df["R0"], linestyle="-", color="blue", label=f"$R_0$ for {country}")
-    ax.plot(df_smoothed["Date"], df_smoothed["smoothed_R0"], linestyle="-", color="red", label="Smoothed Death Rate")
+    ax.plot(df_smoothed["Date"], df_smoothed["smoothed_R0"], linestyle="-", color="red", label="Smoothed R0")
     ax.set_xlabel("Date")
     ax.set_ylabel("$R_0$")
     ax.set_title(f"$R_0$ Over Time for {country}")
@@ -123,8 +123,8 @@ def plot_death_rate(df, country):
     df_smoothed = get_smooth_function(country)
 
     fig, ax = plt.subplots(figsize=(10, 5))
-    ax.plot(df["Date"], df["mu"], linestyle="-", color="red", label=f"Death Rate for {country}")
-    ax.plot(df_smoothed["Date"], df_smoothed["smoothed_mu"], linestyle="-", color="blue", label="Smoothed Death Rate")
+    ax.plot(df["Date"], df["mu"], linestyle="-", color="blue", label=f"Death Rate for {country}")
+    ax.plot(df_smoothed["Date"], df_smoothed["smoothed_mu"], linestyle="-", color="red", label="Smoothed Death Rate")
     ax.set_xlabel("Date")
     ax.set_ylabel("Death Rate (μ)")
     ax.set_title(f"Death Rate Over Time for {country}")
@@ -142,7 +142,7 @@ def plot_alpha(df, country):
     df_smoothed = get_smooth_function(country)
 
     fig, ax = plt.subplots(figsize=(10, 5))
-    ax.plot(df["Date"], df["alpha"], linestyle="-", color="green", label=f"Alpha for {country}")
+    ax.plot(df["Date"], df["alpha"], linestyle="-", color="blue", label=f"Alpha for {country}")
     ax.plot(df_smoothed["Date"], df_smoothed["smoothed_alpha"], linestyle="-", color="red", label="Smoothed Alpha")
     ax.set_xlabel("Date")
     ax.set_ylabel("Alpha (α)")
@@ -161,8 +161,8 @@ def plot_beta(df, country):
     df_smoothed = get_smooth_function(country)
 
     fig, ax = plt.subplots(figsize=(10, 5))
-    ax.plot(df["Date"], df["beta"], linestyle="-", color="purple", label=f"Beta for {country}")
-    ax.plot(df_smoothed["Date"], df_smoothed["smoothed_beta"], linestyle="-", color="blue", label="Smoothed Beta")
+    ax.plot(df["Date"], df["beta"], linestyle="-", color="blue", label=f"Beta for {country}")
+    ax.plot(df_smoothed["Date"], df_smoothed["smoothed_beta"], linestyle="-", color="red", label="Smoothed Beta")
     ax.set_xlabel("Date")
     ax.set_ylabel("Beta (β)")
     ax.set_title(f"Beta Over Time for {country}")
