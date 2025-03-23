@@ -7,7 +7,7 @@ import plotly.express as px
 file_path = "cleaned_complete.csv"  
 df = pd.read_csv(file_path)
 
-# Remove duplicates before processing
+# Remove duplicates 
 before_count = df.shape[0]
 df_cleaned = df.drop_duplicates(keep="first")
 after_count = df_cleaned.shape[0]
@@ -15,7 +15,7 @@ after_count = df_cleaned.shape[0]
 # List of countries to merge provinces into a single entry
 countries_to_merge = ["China", "Canada", "Australia", "Faroe Islands"]
 
-# Separate data: one for merging, one for keeping as is
+# Separate data
 df_merge = df_cleaned[df_cleaned["Country.Region"].isin(countries_to_merge)]
 df_other = df_cleaned[~df_cleaned["Country.Region"].isin(countries_to_merge)]
 
@@ -25,7 +25,7 @@ df_merged = df_merge.groupby(["Country.Region", "Date"], as_index=False).agg({
     "Deaths": "sum",
     "Recovered": "sum",
     "Active": "sum",
-    "WHO.Region": "first"  # Keep first WHO region entry
+    "WHO.Region": "first"  
 })
 
 # Set fixed Lat/Long for merged countries
@@ -65,7 +65,7 @@ for new_region, territories in territory_mapping.items():
         "Deaths": "sum",
         "Recovered": "sum",
         "Active": "sum",
-        "WHO.Region": "first"  # Keep first WHO region entry
+        "WHO.Region": "first" 
     })
     df_grouped["Country.Region"] = new_region
     df_grouped["Province.State"] = 0
