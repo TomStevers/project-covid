@@ -68,7 +68,7 @@ with tab1:
         st.dataframe(top_cases_df, use_container_width=True, hide_index=True)
         
     with col4:
-        st.subheader("Highest Mortality Rate", help = "The mortality rate is calculated by divinding the number of deaths by the population" )
+        st.subheader("Highest Death Rate", help = "The death rate is calculated by divinding the number of deaths by the population" )
         st.dataframe(top_deaths_df, use_container_width=True, hide_index=True)
 
 with tab2:
@@ -147,16 +147,16 @@ with tab2:
 
 with tab3:
     st.title("USA Statistics", help="Hover over the maps to see detailed data")
-    st.plotly_chart(plot_usa_choropleth(connection), use_container_width=True) 
+    st.plotly_chart(plot_usa_choropleth(), use_container_width=True) 
 
     col1, col2 = st.columns([1, 1])
                             
     with col1:
-        st.plotly_chart(plot_confirmed_cases_map(connection))
+        st.plotly_chart(plot_confirmed_cases_map())
 
 
     with col2:
-        st.plotly_chart(plot_deaths_map(connection), help="Hover over the map to see the US counties with the most Covid-19 deaths")
+        st.plotly_chart(plot_deaths_map(), help="Hover over the map to see the US counties with the most Covid-19 deaths")
 
     
     st.divider()
@@ -165,13 +165,13 @@ with tab3:
 
     with col3:
         st.subheader("US Counties with Most Cases", help = "US counties with the most Covid-19 cases")
-        top_x_confirmed = get_top_x_data(connection, 'Confirmed')[["Admin2" , "Total"]]
+        top_x_confirmed = get_top_x_data('Confirmed')[["Admin2" , "Total"]]
         top_x_confirmed = top_x_confirmed.rename(columns={"Admin2": "County", "Total": "Confirmed Cases"})
         st.dataframe(top_x_confirmed, use_container_width=True, hide_index=True)
 
     with col4:
         st.subheader("US Counties with Most Deaths", help = "US counties with the most Covid-19 deaths")
-        top_x_deaths = get_top_x_data(connection, 'Deaths')[["Admin2", "Total"]]
+        top_x_deaths = get_top_x_data('Deaths')[["Admin2", "Total"]]
         top_x_deaths = top_x_deaths.rename(columns={"Admin2": "County", "Total": "Deaths"})
         st.dataframe(top_x_deaths, use_container_width=True, hide_index=True)
 

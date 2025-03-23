@@ -5,18 +5,21 @@ import plotly.express as px
 
 # Connect to the database
 db_path = "covid_database.db"
-connection = sqlite3.connect(db_path)
+
 
 # Finds the most recent date available in the dataset.
-def get_latest_date(connection):
+def get_latest_date():
+    connection = sqlite3.connect(db_path)
     query = "SELECT MAX(Date) FROM usa_county_wise"
     latest_date = pd.read_sql(query, connection).iloc[0, 0]
+    connection.close()
     return latest_date
 
 #  Fetches the top 5 counties in the U.S. based on the given column (Confirmed or Deaths),
 #    only for the most recent available date.
-def get_top_x_data(connection, column_name):
-    latest_date = get_latest_date(connection)  
+def get_top_x_data(column_name):
+    connection = sqlite3.connect(db_path)
+    latest_date = get_latest_date()  
     
     query = f"""
         SELECT 
@@ -34,6 +37,7 @@ def get_top_x_data(connection, column_name):
     """
     df = pd.read_sql(query, connection)
     df['Category'] = 'Confirmed' if column_name == 'Confirmed' else 'Deaths'
+    connection.close()
     return df
 
 # create US map 
@@ -68,14 +72,14 @@ def create_map(dataframe, category):
 
     return fig
 
-# Create mpe with confirmed cases per state
-def plot_confirmed_cases_map(connection):
-    top_x_confirmed = get_top_x_data(connection, 'Confirmed')
+# Create map with confirmed cases per state
+def plot_confirmed_cases_map():
+    top_x_confirmed = get_top_x_data('Confirmed')
     return create_map(top_x_confirmed, 'Confirmed')
 
 # Create map with deaths per state
-def plot_deaths_map(connection):
-    top_x_deaths = get_top_x_data(connection, 'Deaths')
+def plot_deaths_map():
+    top_x_deaths = get_top_x_data('Deaths')
     return create_map(top_x_deaths, 'Deaths')
 
 # Mapping of full state names to abbreviations
@@ -93,8 +97,9 @@ STATE_ABBREVIATIONS = {
 }
 
 # Creates a choropleth map of confirmed COVID-19 cases by state
-def plot_usa_choropleth(connection):
-    latest_date = get_latest_date(connection)  
+def plot_usa_choropleth():
+    connection = sqlite3.connect(db_path)
+    latest_date = get_latest_date()  
     
     query = f"""
         SELECT 
@@ -107,7 +112,8 @@ def plot_usa_choropleth(connection):
         GROUP BY Province_State
     """
     df = pd.read_sql(query, connection)
-
+    connection.close()
+    
     # Create a new "Abbreviation" column, instead of overwriting "State"
     df["Abbreviation"] = df["State"].map(STATE_ABBREVIATIONS)
 
